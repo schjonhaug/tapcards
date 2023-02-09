@@ -76,6 +76,25 @@ func ec() {
 	fmt.Printf("Public Key X: %x\n", privateKey.PublicKey.X.Bytes())
 	fmt.Printf("Public Key Y: %x\n", privateKey.PublicKey.Y.Bytes())
 
+	// Use the P256 curve (secp256k1)
+	curve := elliptic.P256()
+
+	// Choose two random points on the curve
+	//x1, y1 := curve.ScalarBaseMult([]byte{1, 2, 3, 4, 5})
+	//x2, y2 := curve.ScalarBaseMult([]byte{6, 7, 8, 9, 10})
+	x1, y1 := curve.ScalarBaseMult(privateKey.PublicKey.X.Bytes())
+	x2, y2 := curve.ScalarBaseMult(privateKey.PublicKey.X.Bytes())
+
+	// Perform point addition to get a third point on the curve
+	x3, y3 := curve.Add(x1, y1, x2, y2)
+
+	fmt.Printf("Point 1 X: %x\n", x1.Bytes())
+	fmt.Printf("Point 1 Y: %x\n", y1.Bytes())
+	fmt.Printf("Point 2 X: %x\n", x2.Bytes())
+	fmt.Printf("Point 2 Y: %x\n", y2.Bytes())
+	fmt.Printf("Point 3 X: %x\n", x3.Bytes())
+	fmt.Printf("Point 3 Y: %x\n", y3.Bytes())
+
 }
 
 func reader(r io.Reader) {
