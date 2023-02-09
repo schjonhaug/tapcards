@@ -1,4 +1,4 @@
-module example/user/hello
+module main
 
 go 1.19
 
