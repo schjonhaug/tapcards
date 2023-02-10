@@ -159,78 +159,22 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemer
 		fmt.Println(err)
 		panic(err)
 	}
+	ephemeralPublicKey = ephemeralPrivateKey.PubKey().SerializeCompressed()
 
-	pubKey, err := btcec.ParsePubKey(tapProtocol.Pubkey)
+	cardPubKey, err := btcec.ParsePubKey(tapProtocol.Pubkey)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-	sessionKey := btcec.GenerateSharedSecret(ephemeralPrivateKey, pubKey)
-
-	ephemeralPublicKey = ephemeralPrivateKey.PubKey().SerializeCompressed()
-
-	// Use the P256 curve (secp256k1)
-	//curve := elliptic.P256()
-	/*
-		// Generate an ephemeral private key
-		ephemeralPrivateKeyw, _, _, err := elliptic.GenerateKey(curve, rand.Reader)
-		if err != nil {
-			fmt.Printf("Error generating ephemeral private key: %s\n", err)
-			panic(err)
-		}
-	*/
-	//ephemeralPrivateKey.
-
-	//ecdh.priva
-	/*ephemeralPrivateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}*/
-
-	/////
-	// Generate ephemeral public key
-	///
-
-	// Multiply the base point (G) by the ephemeral private key to get the ephemeral public key
-	/*	ephemeralPublicKeyX, ephemeralPublicKeyY := curve.ScalarBaseMult(ephemeralPrivateKey.D.Bytes())
-
-		// Convert the X and Y coordinates of the public key to 32-byte big-endian integers
-		xBytes := ephemeralPublicKeyX.Bytes()
-		yBytes := ephemeralPublicKeyY.Bytes()
-		xPadding := make([]byte, 32-len(xBytes))
-		yPadding := make([]byte, 32-len(yBytes))
-		xBytes = append(xPadding, xBytes...)
-		yBytes = append(yPadding, yBytes...)
-
-		// Determine the sign of the Y coordinate and add it to the front of the public key
-		var signByte byte
-		if ephemeralPublicKeyY.Bit(0) == 0 {
-			signByte = 0x02
-		} else {
-			signByte = 0x03
-		}
-		ephemeralPublicKey = append([]byte{signByte}, xBytes...)*/
-
-	/*fmt.Printf("Ephemeral Private Key: %x\n", ephemeralPrivateKey)
-	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
-
-	// Multiply the ephemeral private key by the card's public key
-
-	pubKeyX, pubKeyY := curve.ScalarBaseMult(tapProtocol.Pubkey)
-
-	x, y := curve.ScalarMult(pubKeyX, pubKeyY, ephemeralPrivateKey.D.Bytes())
-
-	// Hash the result to produce the 32-byte session key
-	sessionKey := sha256.Sum256(append(x.Bytes(), y.Bytes()...))*/
+	sessionKey := btcec.GenerateSharedSecret(ephemeralPrivateKey, cardPubKey)
 
 	fmt.Printf("Session Key: %+v\n", hex.EncodeToString(sessionKey))
 
-	md := sha256.Sum256(fmt.Append(tapProtocol.CurrentCardNonce, []byte(command)))
+	md := sha256.Sum256(append(tapProtocol.CurrentCardNonce, []byte(command)...))
 
-	mask := xor(sessionKey[:], md[:])
+	mask := xor(sessionKey[:], md[:])[:len(cvc)]
 
-	xcvc = xor([]byte(cvc), mask[:len(cvc)])
+	xcvc = xor([]byte(cvc), mask)
 
 	return
 
