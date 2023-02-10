@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/hex"
@@ -14,62 +11,68 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/fxamacker/cbor/v2"
 )
 
 type Transport struct {
+	EphemeralPubKey []byte
+	XCVC            []byte
 }
 
-func (transport Transport) reader(r io.Reader) {
+type CardResponse struct {
+	CardNonce []byte `cbor:"card_nonce"`
+}
+
+type Status struct {
+	Proto     int
+	Birth     int
+	Slots     []int
+	Addr      string
+	Ver       string
+	Pubkey    []byte
+	CardNonce []byte `cbor:"card_nonce"`
+}
+
+func (transport Transport) reader(r io.Reader, channel chan Status) {
 	buf := make([]byte, 1024)
 	_, err := r.Read(buf[:])
 	if err != nil {
 		return
 	}
-	type Status struct {
-		Proto     int
-		Birth     int
-		Slots     []int
-		Addr      string
-		Ver       string
-		Pubkey    []byte
-		CardNonce []byte `cbor:"card_nonce"`
-	}
 
-	//var status interface{}
-	var status Status
+	//var status Status
+	var i Status
 
-	if err := cbor.Unmarshal(buf, &status); err != nil {
+	if err := cbor.Unmarshal(buf, &i); err != nil {
 		panic(err)
 	}
-	fmt.Printf("STATUS: %+v\n", status)
-	fmt.Printf("ADDR: %+v\n", status.Addr)
-	fmt.Printf("PubKey: %+v\n", status.Pubkey)
-	fmt.Printf("Pubkey: %+v\n", string(status.Pubkey[:]))
-	fmt.Printf("CardNonce: %+v\n", status.CardNonce)
-	fmt.Printf("CardNonce: %+v\n", string(status.CardNonce[:]))
-	fmt.Printf("xSlots: %+v\n", status.Slots)
+	/*fmt.Printf("cardResponse: %+v\n", cardResponse)
+	fmt.Printf("ADDR: %+v\n", cardResponse.Addr)
+	fmt.Printf("PubKey: %+v\n", cardResponse.Pubkey)
+	fmt.Printf("Pubkey: %+v\n", string(cardResponse.Pubkey[:]))
+	fmt.Printf("CardNonce: %+v\n", cardResponse.CardNonce)
+	fmt.Printf("CardNonce: %+v\n", string(cardResponse.CardNonce[:]))
+	fmt.Printf("xSlots: %+v\n", cardResponse.Slots)
 
-	print(cardPubkeyToIdent(status.Pubkey))
+	print(cardPubkeyToIdent(cardResponse.Pubkey))*/
 
-	//c <- status
-
-	//ec()
+	channel <- i
 
 }
 
-func (transport Transport) Send(message interface{}) {
+func (transport Transport) Send(message interface{}, channel chan Status) {
 
 	cbor_serialized, err := cbor.Marshal(message)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
 
-	c, err := net.Dial("unix", "/tmp/ecard-pipe")
+	connection, err := net.Dial("unix", "/tmp/ecard-pipe")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.Close()
+	defer connection.Close()
 	/*
 		cls := 0x00
 		ins := 0xCB
@@ -83,8 +86,8 @@ func (transport Transport) Send(message interface{}) {
 
 		//apdu := {cls, ins, 0, 0, len(json_serialized), json_serialized}
 	*/
-	go transport.reader(c)
-	_, err = c.Write(cbor_serialized)
+	go transport.reader(connection, channel)
+	_, err = connection.Write(cbor_serialized)
 
 	if err != nil {
 		log.Fatal("write error:", err)
@@ -95,14 +98,15 @@ func (transport Transport) Send(message interface{}) {
 }
 
 type TapProtocol struct {
-	pubKey []byte
+	CurrentCardNonce []byte
+	Pubkey           []byte
 }
 
-func Status(tapProtocol TapProtocol) {
+/*func Status(tapProtocol TapProtocol) {
 
-}
+}*/
 
-func cardPubkeyToIdent(cardPubkey []byte) string {
+func (tapProtocol TapProtocol) Identity() string {
 	// convert pubkey into a hash formated for humans
 	// - sha256(compressed-pubkey)
 	// - skip first 8 bytes of that (because that's revealed in NFC URL)
@@ -110,11 +114,11 @@ func cardPubkeyToIdent(cardPubkey []byte) string {
 	// - insert dashes
 	// - result is 23 chars long
 
-	if len(cardPubkey) != 33 {
+	if len(tapProtocol.Pubkey) != 33 {
 		panic("expecting compressed pubkey")
 	}
 
-	checksum := sha256.Sum256(cardPubkey[8:])
+	checksum := sha256.Sum256(tapProtocol.Pubkey[8:])
 
 	base32String := base32.StdEncoding.EncodeToString(checksum[:])
 
@@ -136,114 +140,154 @@ func cardPubkeyToIdent(cardPubkey []byte) string {
 
 }
 
-func ec() {
+func xor(a, b []byte) []byte {
 
-	/*
+	if len(a) != len(b) {
+		panic("input slices have different lengths")
+	}
+	c := make([]byte, len(a))
+	for i := range a {
+		c[i] = a[i] ^ b[i]
+	}
+	return c
+}
 
-			Next, we call ecdsa.GenerateKey with elliptic.P256() as the first argument, which represents the secp256k1 curve. The second argument is a rand.Reader, which provides a source of cryptographically secure random data for generating the private key.
+func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemeralPublicKey, xcvc []byte) {
 
-		Finally, we print the private key, along with the corresponding public key coordinates X and Y.
-
-	*/
-
-	// Create a new private key
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	ephemeralPrivateKey, err := btcec.NewPrivateKey()
 	if err != nil {
 		fmt.Println(err)
-		return
+		panic(err)
 	}
-	fmt.Print("\n")
-	fmt.Printf("Private Key: %x\n", privateKey.D.Bytes())
-	fmt.Printf("Public Key X: %x\n", privateKey.PublicKey.X.Bytes())
-	fmt.Printf("Public Key Y: %x\n", privateKey.PublicKey.Y.Bytes())
+
+	pubKey, err := btcec.ParsePubKey(tapProtocol.Pubkey)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}
+	sessionKey := btcec.GenerateSharedSecret(ephemeralPrivateKey, pubKey)
+
+	ephemeralPublicKey = ephemeralPrivateKey.PubKey().SerializeCompressed()
 
 	// Use the P256 curve (secp256k1)
-	curve := elliptic.P256()
+	//curve := elliptic.P256()
+	/*
+		// Generate an ephemeral private key
+		ephemeralPrivateKeyw, _, _, err := elliptic.GenerateKey(curve, rand.Reader)
+		if err != nil {
+			fmt.Printf("Error generating ephemeral private key: %s\n", err)
+			panic(err)
+		}
+	*/
+	//ephemeralPrivateKey.
 
-	// Choose two random points on the curve
-	//x1, y1 := curve.ScalarBaseMult([]byte{1, 2, 3, 4, 5})
-	//x2, y2 := curve.ScalarBaseMult([]byte{6, 7, 8, 9, 10})
-	x1, y1 := curve.ScalarBaseMult(privateKey.PublicKey.X.Bytes())
-	x2, y2 := curve.ScalarBaseMult(privateKey.PublicKey.X.Bytes())
+	//ecdh.priva
+	/*ephemeralPrivateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		fmt.Println(err)
+		panic(err)
+	}*/
 
-	// Perform point addition to get a third point on the curve
-	x3, y3 := curve.Add(x1, y1, x2, y2)
+	/////
+	// Generate ephemeral public key
+	///
 
-	fmt.Printf("Point 1 X: %x\n", x1.Bytes())
-	fmt.Printf("Point 1 Y: %x\n", y1.Bytes())
-	fmt.Printf("Point 2 X: %x\n", x2.Bytes())
-	fmt.Printf("Point 2 Y: %x\n", y2.Bytes())
-	fmt.Printf("Point 3 X: %x\n", x3.Bytes())
-	fmt.Printf("Point 3 Y: %x\n", y3.Bytes())
+	// Multiply the base point (G) by the ephemeral private key to get the ephemeral public key
+	/*	ephemeralPublicKeyX, ephemeralPublicKeyY := curve.ScalarBaseMult(ephemeralPrivateKey.D.Bytes())
 
+		// Convert the X and Y coordinates of the public key to 32-byte big-endian integers
+		xBytes := ephemeralPublicKeyX.Bytes()
+		yBytes := ephemeralPublicKeyY.Bytes()
+		xPadding := make([]byte, 32-len(xBytes))
+		yPadding := make([]byte, 32-len(yBytes))
+		xBytes = append(xPadding, xBytes...)
+		yBytes = append(yPadding, yBytes...)
+
+		// Determine the sign of the Y coordinate and add it to the front of the public key
+		var signByte byte
+		if ephemeralPublicKeyY.Bit(0) == 0 {
+			signByte = 0x02
+		} else {
+			signByte = 0x03
+		}
+		ephemeralPublicKey = append([]byte{signByte}, xBytes...)*/
+
+	/*fmt.Printf("Ephemeral Private Key: %x\n", ephemeralPrivateKey)
+	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
+
+	// Multiply the ephemeral private key by the card's public key
+
+	pubKeyX, pubKeyY := curve.ScalarBaseMult(tapProtocol.Pubkey)
+
+	x, y := curve.ScalarMult(pubKeyX, pubKeyY, ephemeralPrivateKey.D.Bytes())
+
+	// Hash the result to produce the 32-byte session key
+	sessionKey := sha256.Sum256(append(x.Bytes(), y.Bytes()...))*/
+
+	fmt.Printf("Session Key: %+v\n", hex.EncodeToString(sessionKey))
+
+	md := sha256.Sum256(fmt.Append(tapProtocol.CurrentCardNonce, []byte(command)))
+
+	mask := xor(sessionKey[:], md[:])
+
+	xcvc = xor([]byte(cvc), mask[:len(cvc)])
+
+	return
+
+}
+
+type Command struct {
+	Cmd string `cbor:"cmd"`
+}
+
+type Auth struct {
+	EphemeralPubKey []byte `cbor:"epubkey"` //app's ephemeral public key
+	XCVC            []byte `cbor:"xcvc"`    //encrypted CVC value
+}
+
+type Unseal struct {
+	Command
+	Auth
+	Slot int
 }
 
 func main() {
 
-	app_id, err := hex.DecodeString("f0436f696e6b697465434152447631")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("% x\n", app_id)
+	command := Command{Cmd: "status"}
 
-	type Command struct {
-		Cmd string `json:"cmd"`
-	}
-	status := Command{Cmd: "status"}
+	channel := make(chan Status)
 
 	var transport Transport
-	transport.Send(status)
 
-	/*
-	   fmt.Printf("%+v\n", status)
+	go transport.Send(command, channel)
 
-	   var buffer bytes.Buffer        // Stand-in for a buffer connection
-	   enc := gob.NewEncoder(&buffer) // Will write to buffer.
+	i := <-channel
 
-	   err = enc.Encode(status)
+	fmt.Print("\nINTERFACE\n")
+	fmt.Printf("\n%+v\n", i)
 
-	   	if err != nil {
-	   		log.Fatal("encode error:", err)
-	   	}
+	var tapProtocol TapProtocol
 
-	   // HERE ARE YOUR BYTES!!!!
-	   //fmt.Println(buffer.Bytes())
+	tapProtocol.Pubkey = i.Pubkey
+	tapProtocol.CurrentCardNonce = i.CardNonce
 
-	   json_serialized, err := json.Marshal(status)
+	fmt.Printf("Pubkey    %+v\n", hex.EncodeToString(i.Pubkey))
+	fmt.Printf("CardNonce %+v\n", hex.EncodeToString(i.CardNonce))
 
-	   	if err != nil {
-	   		fmt.Println(err)
-	   		return
-	   	}
+	fmt.Print("\n")
+	fmt.Print(tapProtocol.Identity())
+	fmt.Print("\n")
 
-	   fmt.Println(string(json_serialized))
+	fmt.Print("\n")
+	ephemeralPublicKey, xcvc := tapProtocol.Authenticate("123456", "unseal")
+	fmt.Print("\n")
+	fmt.Printf("ephemeralPublicKey %+v\n", hex.EncodeToString(ephemeralPublicKey))
+	fmt.Printf("xcvc %+v\n", hex.EncodeToString(xcvc))
 
-	   cbor_serialized, err := cbor.Marshal(status)
+	auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
 
-	   	if err != nil {
-	   		fmt.Println("error:", err)
-	   	}
+	unsealCommand := Unseal{Command: Command{Cmd: "unseal"}, Auth: auth, Slot: 0}
 
-	   fmt.Println(string(cbor_serialized))
-	   //capdu := apdu.Capdu{Cla: 0x00, Ins: 0xa4, P1: 4, Data: buffer.Bytes()}
-	   capdu := apdu.Capdu{Cla: 0x01, Ins: 0x01, Data: cbor_serialized}
+	transport.Send(unsealCommand, channel)
 
-	   fmt.Println(capdu)
-
-	   cbor_capdu_serialized, err := cbor.Marshal(capdu)
-
-	   	if err != nil {
-	   		fmt.Println("error:", err)
-	   	}
-
-	   fmt.Printf("cbor_capdu_serialized %x\n", cbor_capdu_serialized)
-
-	   capdu_bytes, err := capdu.Bytes()
-
-	   	if err != nil {
-	   		fmt.Println("error:", err)
-	   	}
-
-	   fmt.Printf("capdu_bytes %x\n", capdu_bytes)
-	*/
 }
