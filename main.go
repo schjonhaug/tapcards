@@ -33,11 +33,9 @@ type Status struct {
 	Addr   string
 	Ver    string
 	Pubkey []byte
-
-	//CardNonce []byte `cbor:"card_nonce"`
 }
 
-func (transport Transport) reader(r io.Reader, channel chan Status) {
+func (transport *Transport) reader(r io.Reader, channel chan Status) {
 	buf := make([]byte, 1024)
 	_, err := r.Read(buf[:])
 	if err != nil {
@@ -67,26 +65,14 @@ func (transport Transport) Send(message interface{}, channel chan Status) {
 		log.Fatal(err)
 	}
 	defer connection.Close()
-	/*
-		cls := 0x00
-		ins := 0xCB
-		p1 := 0x00
-		p2 := 0x00
 
-		//standard format
-		result := make([]byte, 0, 30000)
-		result = append(result, []byte{cls, ins, p1, p2, byte(len(json_serialized))}...)
-		result = append(result, c.json_serialized...)
-
-		//apdu := {cls, ins, 0, 0, len(json_serialized), json_serialized}
-	*/
 	go transport.reader(connection, channel)
 	_, err = connection.Write(cbor_serialized)
 
 	if err != nil {
 		log.Fatal("write error:", err)
 	}
-	//transport.reader(c)
+
 	time.Sleep(100 * time.Millisecond)
 
 }
@@ -96,12 +82,8 @@ type TapProtocol struct {
 	Pubkey           []byte
 }
 
-/*func Status(tapProtocol TapProtocol) {
-
-}*/
-
 func (tapProtocol TapProtocol) Identity() string {
-	// convert pubkey into a hash formated for humans
+	// convert pubkey into a hash formatted for humans
 	// - sha256(compressed-pubkey)
 	// - skip first 8 bytes of that (because that's revealed in NFC URL)
 	// - base32 and take first 20 chars in 4 groups of five
@@ -112,9 +94,9 @@ func (tapProtocol TapProtocol) Identity() string {
 		panic("expecting compressed pubkey")
 	}
 
-	checksum := sha256.Sum256(tapProtocol.Pubkey[8:])
+	checksum := sha256.Sum256(tapProtocol.Pubkey)
 
-	base32String := base32.StdEncoding.EncodeToString(checksum[:])
+	base32String := base32.StdEncoding.EncodeToString(checksum[8:])
 
 	// Only keep the first 20 characters
 	s := base32String[:20]
@@ -243,33 +225,36 @@ func main() {
 
 	go transport.Send(command, channel)
 
-	i := <-channel
+	status := <-channel
 
-	fmt.Print("\nINTERFACE\n")
-	fmt.Printf("\n%+v\n", i)
+	fmt.Println("##########")
+	fmt.Println("# STATUS #")
+	fmt.Println("##########")
+
+	fmt.Println("Proto:     ", status.Proto)
+	fmt.Println("Birth:     ", status.Birth)
+	fmt.Println("Slots:     ", status.Slots)
+	fmt.Println("Addr:      ", status.Addr)
+	fmt.Println("Ver:       ", status.Ver)
+	fmt.Printf("Pubkey:     %x\n", status.Pubkey)
+	fmt.Printf("Card Nonce: %x\n", status.CardNonce)
 
 	var tapProtocol TapProtocol
 
-	tapProtocol.Pubkey = i.Pubkey
-	tapProtocol.CurrentCardNonce = i.CardNonce
+	tapProtocol.Pubkey = status.Pubkey
+	tapProtocol.CurrentCardNonce = status.CardNonce
 
-	fmt.Printf("Pubkey    %+v\n", hex.EncodeToString(i.Pubkey))
-	fmt.Printf("CardNonce %+v\n", hex.EncodeToString(i.CardNonce))
+	fmt.Println("Card identity: ", tapProtocol.Identity())
 
-	fmt.Print("\n")
-	fmt.Print(tapProtocol.Identity())
-	fmt.Print("\n")
-
-	fmt.Print("\n")
 	ephemeralPublicKey, xcvc := tapProtocol.Authenticate("123456", "unseal")
 	fmt.Print("\n")
 	fmt.Printf("ephemeralPublicKey %+v\n", hex.EncodeToString(ephemeralPublicKey))
 	fmt.Printf("xcvc %+v\n", hex.EncodeToString(xcvc))
 
-	auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
+	//auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
 
-	unsealCommand := Unseal{Command: Command{Cmd: "unseal"}, Auth: auth, Slot: 0}
+	//unsealCommand := Unseal{Command: Command{Cmd: "unseal"}, Auth: auth, Slot: 0}
 
-	transport.Send(unsealCommand, channel)
+	//transport.Send(unsealCommand, channel)
 
 }
