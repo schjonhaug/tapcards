@@ -230,7 +230,7 @@ type Auth struct {
 type Unseal struct {
 	Command
 	Auth
-	Slot int
+	Slot int `cbor:"slot"`
 }
 
 func main() {
