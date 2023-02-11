@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/fxamacker/cbor/v2"
 )
 
@@ -25,13 +25,15 @@ type CardResponse struct {
 }
 
 type Status struct {
-	Proto     int
-	Birth     int
-	Slots     []int
-	Addr      string
-	Ver       string
-	Pubkey    []byte
-	CardNonce []byte `cbor:"card_nonce"`
+	CardResponse
+	Proto  int
+	Birth  int
+	Slots  []int
+	Addr   string
+	Ver    string
+	Pubkey []byte
+
+	//CardNonce []byte `cbor:"card_nonce"`
 }
 
 func (transport Transport) reader(r io.Reader, channel chan Status) {
@@ -47,15 +49,6 @@ func (transport Transport) reader(r io.Reader, channel chan Status) {
 	if err := cbor.Unmarshal(buf, &i); err != nil {
 		panic(err)
 	}
-	/*fmt.Printf("cardResponse: %+v\n", cardResponse)
-	fmt.Printf("ADDR: %+v\n", cardResponse.Addr)
-	fmt.Printf("PubKey: %+v\n", cardResponse.Pubkey)
-	fmt.Printf("Pubkey: %+v\n", string(cardResponse.Pubkey[:]))
-	fmt.Printf("CardNonce: %+v\n", cardResponse.CardNonce)
-	fmt.Printf("CardNonce: %+v\n", string(cardResponse.CardNonce[:]))
-	fmt.Printf("xSlots: %+v\n", cardResponse.Slots)
-
-	print(cardPubkeyToIdent(cardResponse.Pubkey))*/
 
 	channel <- i
 
@@ -154,21 +147,30 @@ func xor(a, b []byte) []byte {
 
 func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemeralPublicKey, xcvc []byte) {
 
-	ephemeralPrivateKey, err := btcec.NewPrivateKey()
+	cardPubKey, err := secp256k1.ParsePubKey(tapProtocol.Pubkey)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
+	}
+
+	fmt.Printf("\ncardPubKey:  %x\n", cardPubKey.SerializeCompressed())
+
+	// Derive an ephemeral public/private keypair for performing ECDHE with
+	// the recipient.
+	ephemeralPrivateKey, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 	ephemeralPublicKey = ephemeralPrivateKey.PubKey().SerializeCompressed()
 
-	cardPubKey, err := btcec.ParsePubKey(tapProtocol.Pubkey)
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
-	sessionKey := btcec.GenerateSharedSecret(ephemeralPrivateKey, cardPubKey)
+	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
+	sessionKey := secp256k1.GenerateSharedSecret(ephemeralPrivateKey, cardPubKey)
 
-	fmt.Printf("Session Key: %+v\n", hex.EncodeToString(sessionKey))
+	fmt.Printf("Session Key:  %x\n", sessionKey)
+
+	sessionKey2 := sha256.Sum256(sessionKey[:])
+	fmt.Printf("Session Key2: %x\n", sessionKey2)
 
 	md := sha256.Sum256(append(tapProtocol.CurrentCardNonce, []byte(command)...))
 
