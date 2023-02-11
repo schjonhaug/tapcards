@@ -143,7 +143,7 @@ func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	xBytes := result.X.Bytes()
 
 	// Get the last digit of the big integer
-	lastDigit := new(big.Int).Mod(publicKey.X(), big.NewInt(10))
+	lastDigit := new(big.Int).Mod(publicKey.Y(), big.NewInt(10))
 
 	// Perform a bitwise AND with 0x01
 	andResult := new(big.Int).And(lastDigit, big.NewInt(0x01))
@@ -251,10 +251,10 @@ func main() {
 	fmt.Printf("ephemeralPublicKey %+v\n", hex.EncodeToString(ephemeralPublicKey))
 	fmt.Printf("xcvc %+v\n", hex.EncodeToString(xcvc))
 
-	//auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
+	auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
 
-	//unsealCommand := Unseal{Command: Command{Cmd: "unseal"}, Auth: auth, Slot: 0}
+	unsealCommand := Unseal{Command: Command{Cmd: "unseal"}, Auth: auth, Slot: 0}
 
-	//transport.Send(unsealCommand, channel)
+	transport.Send(unsealCommand, channel)
 
 }
