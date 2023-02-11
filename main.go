@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"net"
 	"strings"
 	"time"
@@ -145,7 +146,45 @@ func xor(a, b []byte) []byte {
 	return c
 }
 
+// GenerateSharedSecret generates a shared secret based on a private key and a
+// public key using Diffie-Hellman key exchange (ECDH) (RFC 5903).
+// RFC5903 Section 9 states we should only return x.
+//
+// It is recommended to securily hash the result before using as a cryptographic
+// key.
+func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1.PublicKey) []byte {
+
+	var point, result secp256k1.JacobianPoint
+	publicKey.AsJacobian(&point)
+	secp256k1.ScalarMultNonConst(&privateKey.Key, &point, &result)
+	result.ToAffine()
+	xBytes := result.X.Bytes()
+
+	// Get the last digit of the big integer
+	lastDigit := new(big.Int).Mod(publicKey.X(), big.NewInt(10))
+
+	// Perform a bitwise AND with 0x01
+	andResult := new(big.Int).And(lastDigit, big.NewInt(0x01))
+
+	// Perform a bitwise OR with 0x02
+	orResult := new(big.Int).Or(andResult, big.NewInt(0x02))
+
+	fmt.Println("x:", publicKey.X().Text(2))
+	fmt.Println("orResult:", orResult.Text(2))
+
+	even := orResult.Bytes()
+
+	sharedSecret := append(even, xBytes[:]...)
+
+	println(len(sharedSecret))
+
+	return sharedSecret
+}
+
 func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemeralPublicKey, xcvc []byte) {
+
+	//privA, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	//pubA := privA.PublicKey
 
 	cardPubKey, err := secp256k1.ParsePubKey(tapProtocol.Pubkey)
 	if err != nil {
@@ -165,12 +204,9 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemer
 	ephemeralPublicKey = ephemeralPrivateKey.PubKey().SerializeCompressed()
 
 	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
-	sessionKey := secp256k1.GenerateSharedSecret(ephemeralPrivateKey, cardPubKey)
+	sessionKey := sha256.Sum256(GenerateSharedSecret(ephemeralPrivateKey, cardPubKey))
 
 	fmt.Printf("Session Key:  %x\n", sessionKey)
-
-	sessionKey2 := sha256.Sum256(sessionKey[:])
-	fmt.Printf("Session Key2: %x\n", sessionKey2)
 
 	md := sha256.Sum256(append(tapProtocol.CurrentCardNonce, []byte(command)...))
 
