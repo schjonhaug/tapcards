@@ -23,7 +23,7 @@ type Transport struct {
 // DATA
 
 type CardResponse struct {
-	CardNonce []byte `cbor:"card_nonce"`
+	CardNonce [16]byte `cbor:"card_nonce"`
 }
 
 type StatusData struct {
@@ -33,16 +33,16 @@ type StatusData struct {
 	Slots     []int
 	Addr      string
 	Ver       string
-	PublicKey []byte `cbor:"pubkey"`
+	PublicKey [33]byte `cbor:"pubkey"`
 }
 
 type UnsealData struct {
 	CardResponse
-	Slot            int    // slot just unsealed
-	PrivateKey      []byte `cbor:"privkey"`    // private key for spending
-	PublicKey       []byte `cbor:"pubkey"`     // slot's pubkey (convenience, since could be calc'd from privkey)
-	MasterPublicKey []byte `cbor:"master_pk"`  // card's master private key
-	ChainCode       []byte `cbor:"chain_code"` // nonce provided by customer
+	Slot            int      // slot just unsealed
+	PrivateKey      [32]byte `cbor:"privkey"`    // private key for spending
+	PublicKey       [33]byte `cbor:"pubkey"`     // slot's pubkey (convenience, since could be calc'd from privkey)
+	MasterPublicKey [32]byte `cbor:"master_pk"`  // card's master private key
+	ChainCode       [32]byte `cbor:"chain_code"` // nonce provided by customer
 
 }
 
@@ -52,8 +52,8 @@ type NewData struct {
 }
 
 type ErrorData struct {
-	Error string `cbor:"error"`
 	Code  int
+	Error string
 }
 
 func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
@@ -135,9 +135,17 @@ func (transport Transport) Send(command any, channel chan any) {
 
 }
 
+// TAP PROTOCOL
+
 type TapProtocol struct {
-	CurrentCardNonce []byte
-	Pubkey           []byte
+	CurrentCardNonce [16]byte
+	CardPublicKey    [33]byte
+	SessionKey       []byte
+	CurrentSlot      int
+}
+
+func (tapProtocol *TapProtocol) getStatus() {
+
 }
 
 func (tapProtocol TapProtocol) Identity() string {
@@ -148,11 +156,11 @@ func (tapProtocol TapProtocol) Identity() string {
 	// - insert dashes
 	// - result is 23 chars long
 
-	if len(tapProtocol.Pubkey) != 33 {
+	if len(tapProtocol.CardPublicKey) != 33 {
 		panic("expecting compressed pubkey")
 	}
 
-	checksum := sha256.Sum256(tapProtocol.Pubkey)
+	checksum := sha256.Sum256(tapProtocol.CardPublicKey[:])
 
 	base32String := base32.StdEncoding.EncodeToString(checksum[8:])
 
@@ -200,16 +208,18 @@ func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	result.ToAffine()
 	xBytes := result.X.Bytes()
 
+	fmt.Println("Y:", publicKey.Y().Text(2))
 	// Get the last digit of the big integer
-	lastDigit := new(big.Int).Mod(publicKey.Y(), big.NewInt(10))
+	//lastDigit := new(big.Int).Mod(publicKey.Y(), big.NewInt(10))
+	//fmt.Println("last digit:", lastDigit.Text(2))
 
 	// Perform a bitwise AND with 0x01
-	andResult := new(big.Int).And(lastDigit, big.NewInt(0x01))
+	andResult := new(big.Int).And(publicKey.Y(), big.NewInt(0x01))
+	fmt.Println("and Result:", andResult.Text(2))
 
 	// Perform a bitwise OR with 0x02
 	orResult := new(big.Int).Or(andResult, big.NewInt(0x02))
 
-	fmt.Println("x:", publicKey.X().Text(2))
 	fmt.Println("orResult:", orResult.Text(2))
 
 	even := orResult.Bytes()
@@ -221,27 +231,28 @@ func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	return sharedSecret
 }
 
-func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemeralPublicKey, xcvc []byte) {
+func (tapProtocol TapProtocol) Authenticate(cvc string, command Command) (*Auth, error) {
 
 	fmt.Println("########")
 	fmt.Println("# AUTH #")
 	fmt.Println("########")
 
-	cardPubKey, err := secp256k1.ParsePubKey(tapProtocol.Pubkey)
+	cardPubKey, err := secp256k1.ParsePubKey(tapProtocol.CardPublicKey[:])
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+
+		return nil, err
+
 	}
 
 	// Derive an ephemeral public/private keypair for performing ECDHE with
 	// the recipient.
 	ephemeralPrivateKey, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
-		fmt.Println(err)
-		return
+
+		return nil, err
 	}
 
-	ephemeralPublicKey = ephemeralPrivateKey.PubKey().SerializeCompressed()
+	ephemeralPublicKey := ephemeralPrivateKey.PubKey().SerializeCompressed()
 
 	fmt.Print("\n")
 	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
@@ -250,21 +261,34 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemer
 	sessionKey := sha256.Sum256(GenerateSharedSecret(ephemeralPrivateKey, cardPubKey))
 
 	fmt.Printf("Session Key:  %x\n", sessionKey)
+	fmt.Printf("CurrentCardNonce:  %x\n", tapProtocol.CurrentCardNonce)
 
-	md := sha256.Sum256(append(tapProtocol.CurrentCardNonce, []byte(command)...))
+	md := sha256.Sum256(append(tapProtocol.CurrentCardNonce[:], []byte(command.Cmd)...))
+	fmt.Printf("MD: %x\n", md)
 
 	mask := xor(sessionKey[:], md[:])[:len(cvc)]
 
-	xcvc = xor([]byte(cvc), mask)
+	fmt.Printf("MASK: %x\n", mask)
+
+	xcvc := xor([]byte(cvc), mask)
 
 	fmt.Printf("xcvc %x\n", xcvc)
 
-	return
+	auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
+
+	return &auth, nil
 
 }
 
+// COMMANDS
+
 type Command struct {
 	Cmd string `cbor:"cmd"`
+}
+
+type Auth struct {
+	EphemeralPubKey []byte `cbor:"epubkey"` //app's ephemeral public key
+	XCVC            []byte `cbor:"xcvc"`    //encrypted CVC value
 }
 
 type StatusCommand struct {
@@ -274,12 +298,18 @@ type StatusCommand struct {
 type UnsealCommand struct {
 	Command
 	Auth
-	Slot int `cbor:"slot"`
+	Slot int
 }
-type Auth struct {
-	EphemeralPubKey []byte `cbor:"epubkey"` //app's ephemeral public key
-	XCVC            []byte `cbor:"xcvc"`    //encrypted CVC value
+
+type NewCommand struct {
+	Command
+	Auth
+	Slot      int      // (optional: default zero) slot to be affected, must equal currently-active slot number
+	ChainCode [32]byte `cbor:"chain_code"` // app's entropy share to be applied to new slot (optional on SATSCARD)
+
 }
+
+//
 
 func sendReceive(command any) {
 
@@ -290,6 +320,8 @@ func sendReceive(command any) {
 	go transport.Send(command, channel)
 
 	data := <-channel
+
+	// Get the nonce and save it.
 
 	switch data := data.(type) {
 	case StatusData:
@@ -306,20 +338,11 @@ func sendReceive(command any) {
 		fmt.Printf("Pubkey:     %x\n", data.PublicKey)
 		fmt.Printf("Card Nonce: %x\n", data.CardNonce)
 
-		var tapProtocol TapProtocol
-
-		tapProtocol.Pubkey = data.PublicKey
+		tapProtocol.CardPublicKey = data.PublicKey
 		tapProtocol.CurrentCardNonce = data.CardNonce
+		tapProtocol.CurrentSlot = data.Slots[0]
 
 		fmt.Println("Card identity: ", tapProtocol.Identity())
-
-		ephemeralPublicKey, xcvc := tapProtocol.Authenticate("123456", "unseal")
-
-		auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
-
-		unsealCommand := UnsealCommand{Command: Command{Cmd: "unseal"}, Auth: auth, Slot: 0}
-
-		sendReceive(unsealCommand)
 
 	case UnsealData:
 
@@ -333,6 +356,8 @@ func sendReceive(command any) {
 		fmt.Printf("Master Public Key: %x\n", data.MasterPublicKey)
 		fmt.Printf("Chain Code:        %x\n", data.ChainCode)
 		fmt.Printf("Card Nonce:        %x\n", data.CardNonce)
+
+		tapProtocol.CurrentCardNonce = data.CardNonce
 
 	case ErrorData:
 
@@ -350,10 +375,55 @@ func sendReceive(command any) {
 
 }
 
+var tapProtocol TapProtocol
+
+func init() {
+	print("ASDAS")
+
+	//tapProtocol = TapProtocol{}
+}
+
 func main() {
 
-	command := StatusCommand{Command{Cmd: "status"}}
+	// STATUS
 
-	sendReceive(command)
+	statusCommand := StatusCommand{
+		Command{Cmd: "status"},
+	}
 
+	sendReceive(statusCommand)
+
+	// UNSEAL
+	auth, err := tapProtocol.Authenticate("123456", statusCommand.Command)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	unsealCommand := UnsealCommand{
+		Command: Command{Cmd: "unseal"},
+		Auth:    *auth,
+		Slot:    tapProtocol.CurrentSlot,
+	}
+
+	sendReceive(unsealCommand)
+
+	return
+
+	// NEW
+
+	auth, err = tapProtocol.Authenticate("123456", statusCommand.Command)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	newCommand := NewCommand{
+		Command: Command{Cmd: "new"},
+		Slot:    tapProtocol.CurrentSlot,
+		Auth:    *auth}
+
+	sendReceive(newCommand)
 }
