@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/bech32"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/fxamacker/cbor/v2"
@@ -435,14 +436,16 @@ func sendReceive(command any) {
 		fmt.Printf("Signature: %x\n", data.Signature)
 		fmt.Printf("Public Key: %x\n", data.PublicKey)
 
-		conv, err := bech32.ConvertBits(data.PublicKey[:], 8, 5, true)
+		hash160 := btcutil.Hash160(data.PublicKey[:])
+
+		conv, err := bech32.ConvertBits(hash160, 8, 5, true)
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
 
-		//xxx := btcutil.Hash160(conv)
+		zero := make([]byte, 1)
 
-		encoded, err := bech32.Encode("bc", conv)
+		encoded, err := bech32.Encode("bc", append(zero, conv...))
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
