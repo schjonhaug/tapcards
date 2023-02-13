@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil/bech32"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/fxamacker/cbor/v2"
 )
@@ -31,8 +33,8 @@ type StatusData struct {
 	Proto     int
 	Birth     int
 	Slots     []int
-	Addr      string
-	Ver       string
+	Address   string   `cbor:"addr"`
+	Version   string   `cbor:"ver"`
 	PublicKey [33]byte `cbor:"pubkey"`
 }
 
@@ -49,6 +51,13 @@ type UnsealData struct {
 type NewData struct {
 	CardResponse
 	Slot int
+}
+
+type ReadData struct {
+	CardResponse
+	Signature [64]byte `cbor:"sig"`    //  signature over a bunch of fields using private key of slot
+	PublicKey [33]byte `cbor:"pubkey"` // public key for this slot/derivation
+
 }
 
 type ErrorData struct {
@@ -98,6 +107,23 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	case NewCommand:
 
 		var v NewData
+
+		if err := decMode.Unmarshal(buf, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(buf, &e); err != nil {
+				panic(err)
+			}
+
+			channel <- e
+
+		}
+
+		channel <- v
+	case ReadCommand:
+
+		var v ReadData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
@@ -263,9 +289,7 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command Command) (*Auth,
 
 	cardPublicKey, err := secp256k1.ParsePubKey(tapProtocol.CardPublicKey[:])
 	if err != nil {
-
 		return nil, err
-
 	}
 
 	// Derive an ephemeral public/private keypair for performing ECDHE with
@@ -288,11 +312,8 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command Command) (*Auth,
 	fmt.Printf("CurrentCardNonce:  %x\n", tapProtocol.CurrentCardNonce)
 
 	md := sha256.Sum256(append(tapProtocol.CurrentCardNonce[:], []byte(command.Cmd)...))
-	fmt.Printf("MD: %x\n", md)
 
 	mask := xor(sessionKey[:], md[:])[:len(cvc)]
-
-	fmt.Printf("MASK: %x\n", mask)
 
 	xcvc := xor([]byte(cvc), mask)
 
@@ -333,6 +354,12 @@ type NewCommand struct {
 
 }
 
+type ReadCommand struct {
+	Command
+	Auth
+	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
+}
+
 //
 
 func sendReceive(command any) {
@@ -357,8 +384,8 @@ func sendReceive(command any) {
 		fmt.Println("Proto:     ", data.Proto)
 		fmt.Println("Birth:     ", data.Birth)
 		fmt.Println("Slots:     ", data.Slots)
-		fmt.Println("Addr:      ", data.Addr)
-		fmt.Println("Ver:       ", data.Ver)
+		fmt.Println("Addr:      ", data.Address)
+		fmt.Println("Ver:       ", data.Version)
 		fmt.Printf("Pubkey:     %x\n", data.PublicKey)
 		fmt.Printf("Card Nonce: %x\n", data.CardNonce)
 
@@ -399,6 +426,32 @@ func sendReceive(command any) {
 
 		tapProtocol.CurrentCardNonce = data.CardNonce
 
+	case ReadData:
+
+		fmt.Println("########")
+		fmt.Println("# READ #")
+		fmt.Println("########")
+
+		fmt.Printf("Signature: %x\n", data.Signature)
+		fmt.Printf("Public Key: %x\n", data.PublicKey)
+
+		conv, err := bech32.ConvertBits(data.PublicKey[:], 8, 5, true)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		//xxx := btcutil.Hash160(conv)
+
+		encoded, err := bech32.Encode("bc", conv)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+
+		// Show the encoded data.
+		fmt.Println("Encoded Data:", encoded)
+
+		tapProtocol.CurrentCardNonce = data.CardNonce
+
 	case ErrorData:
 
 		fmt.Println("#########")
@@ -433,10 +486,41 @@ func main() {
 
 	sendReceive(statusCommand)
 
-	command := Command{Cmd: "unseal"}
+	// READ
+
+	command := Command{Cmd: "read"}
+
+	auth, err := tapProtocol.Authenticate("123456", command)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Create nonce
+
+	// first step is to create a slice of bytes with the desired length
+	nonce := make([]byte, 16)
+	// then we can call rand.Read.
+	_, err = rand.Read(nonce)
+	if err != nil {
+		log.Fatalf("error while generating random string: %s", err)
+	}
+
+	readCommand := ReadCommand{
+		Command: command,
+		Auth:    *auth,
+		Nonce:   nonce,
+	}
+
+	sendReceive(readCommand)
+
+	return
 
 	// UNSEAL
-	auth, err := tapProtocol.Authenticate("123456", command)
+	command = Command{Cmd: "unseal"}
+
+	auth, err = tapProtocol.Authenticate("123456", command)
 
 	if err != nil {
 		fmt.Println(err)
