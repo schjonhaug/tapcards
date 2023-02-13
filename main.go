@@ -233,9 +233,12 @@ func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 
 func (tapProtocol TapProtocol) Authenticate(cvc string, command Command) (*Auth, error) {
 
-	fmt.Println("########")
+	fmt.Println("\n########")
 	fmt.Println("# AUTH #")
 	fmt.Println("########")
+
+	fmt.Println("CVC:", cvc)
+	fmt.Println("Command:", command.Cmd)
 
 	cardPubKey, err := secp256k1.ParsePubKey(tapProtocol.CardPublicKey[:])
 	if err != nil {
@@ -393,8 +396,10 @@ func main() {
 
 	sendReceive(statusCommand)
 
+	command := Command{Cmd: "unseal"}
+
 	// UNSEAL
-	auth, err := tapProtocol.Authenticate("123456", statusCommand.Command)
+	auth, err := tapProtocol.Authenticate("123456", command)
 
 	if err != nil {
 		fmt.Println(err)
@@ -402,7 +407,7 @@ func main() {
 	}
 
 	unsealCommand := UnsealCommand{
-		Command: Command{Cmd: "unseal"},
+		Command: command,
 		Auth:    *auth,
 		Slot:    tapProtocol.CurrentSlot,
 	}
