@@ -213,8 +213,11 @@ func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	//lastDigit := new(big.Int).Mod(publicKey.Y(), big.NewInt(10))
 	//fmt.Println("last digit:", lastDigit.Text(2))
 
+	y := new(big.Int)
+	y.SetBytes(result.Y.Bytes()[:])
+
 	// Perform a bitwise AND with 0x01
-	andResult := new(big.Int).And(publicKey.Y(), big.NewInt(0x01))
+	andResult := new(big.Int).And(y, big.NewInt(0x01))
 	fmt.Println("and Result:", andResult.Text(2))
 
 	// Perform a bitwise OR with 0x02
@@ -240,7 +243,7 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command Command) (*Auth,
 	fmt.Println("CVC:", cvc)
 	fmt.Println("Command:", command.Cmd)
 
-	cardPubKey, err := secp256k1.ParsePubKey(tapProtocol.CardPublicKey[:])
+	cardPublicKey, err := secp256k1.ParsePubKey(tapProtocol.CardPublicKey[:])
 	if err != nil {
 
 		return nil, err
@@ -261,7 +264,7 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command Command) (*Auth,
 	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
 
 	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
-	sessionKey := sha256.Sum256(GenerateSharedSecret(ephemeralPrivateKey, cardPubKey))
+	sessionKey := sha256.Sum256(GenerateSharedSecret(ephemeralPrivateKey, cardPublicKey))
 
 	fmt.Printf("Session Key:  %x\n", sessionKey)
 	fmt.Printf("CurrentCardNonce:  %x\n", tapProtocol.CurrentCardNonce)
