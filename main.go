@@ -95,6 +95,23 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 		}
 
 		channel <- v
+	case NewCommand:
+
+		var v NewData
+
+		if err := decMode.Unmarshal(buf, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(buf, &e); err != nil {
+				panic(err)
+			}
+
+			channel <- e
+
+		}
+
+		channel <- v
 
 	default:
 
@@ -141,7 +158,8 @@ type TapProtocol struct {
 	CurrentCardNonce [16]byte
 	CardPublicKey    [33]byte
 	SessionKey       []byte
-	CurrentSlot      int
+	ActiveSlot       int
+	NumberOfSlots    int
 }
 
 func (tapProtocol *TapProtocol) getStatus() {
@@ -304,14 +322,14 @@ type StatusCommand struct {
 type UnsealCommand struct {
 	Command
 	Auth
-	Slot int
+	Slot int `cbor:"slot"`
 }
 
 type NewCommand struct {
 	Command
 	Auth
-	Slot      int      // (optional: default zero) slot to be affected, must equal currently-active slot number
-	ChainCode [32]byte `cbor:"chain_code"` // app's entropy share to be applied to new slot (optional on SATSCARD)
+	Slot int `cbor:"slot"` // (optional: default zero) slot to be affected, must equal currently-active slot number
+	//ChainCode [32]byte `cbor:"chain_code"` // app's entropy share to be applied to new slot (optional on SATSCARD)
 
 }
 
@@ -346,7 +364,8 @@ func sendReceive(command any) {
 
 		tapProtocol.CardPublicKey = data.PublicKey
 		tapProtocol.CurrentCardNonce = data.CardNonce
-		tapProtocol.CurrentSlot = data.Slots[0]
+		tapProtocol.ActiveSlot = data.Slots[0]
+		tapProtocol.NumberOfSlots = data.Slots[1]
 
 		fmt.Println("Card identity: ", tapProtocol.Identity())
 
@@ -362,6 +381,21 @@ func sendReceive(command any) {
 		fmt.Printf("Master Public Key: %x\n", data.MasterPublicKey)
 		fmt.Printf("Chain Code:        %x\n", data.ChainCode)
 		fmt.Printf("Card Nonce:        %x\n", data.CardNonce)
+
+		tapProtocol.CurrentCardNonce = data.CardNonce
+		// Increase active slot
+
+		if tapProtocol.ActiveSlot < tapProtocol.NumberOfSlots {
+			tapProtocol.ActiveSlot++
+		}
+
+	case NewData:
+
+		fmt.Println("#######")
+		fmt.Println("# NEW #")
+		fmt.Println("#######")
+
+		fmt.Println("Slot:             ", data.Slot)
 
 		tapProtocol.CurrentCardNonce = data.CardNonce
 
@@ -412,16 +446,16 @@ func main() {
 	unsealCommand := UnsealCommand{
 		Command: command,
 		Auth:    *auth,
-		Slot:    tapProtocol.CurrentSlot,
+		Slot:    tapProtocol.ActiveSlot,
 	}
 
 	sendReceive(unsealCommand)
 
-	return
-
 	// NEW
 
-	auth, err = tapProtocol.Authenticate("123456", statusCommand.Command)
+	command = Command{Cmd: "new"}
+
+	auth, err = tapProtocol.Authenticate("123456", command)
 
 	if err != nil {
 		fmt.Println(err)
@@ -429,8 +463,8 @@ func main() {
 	}
 
 	newCommand := NewCommand{
-		Command: Command{Cmd: "new"},
-		Slot:    tapProtocol.CurrentSlot,
+		Command: command,
+		Slot:    tapProtocol.ActiveSlot,
 		Auth:    *auth}
 
 	sendReceive(newCommand)
