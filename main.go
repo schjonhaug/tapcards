@@ -3,13 +3,11 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/base32"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
 	"math/big"
 	"net"
-	"reflect"
 	"strings"
 	"time"
 
@@ -21,6 +19,8 @@ type Transport struct {
 	EphemeralPubKey []byte
 	XCVC            []byte
 }
+
+// DATA
 
 type CardResponse struct {
 	CardNonce []byte `cbor:"card_nonce"`
@@ -38,15 +38,25 @@ type StatusData struct {
 
 type UnsealData struct {
 	CardResponse
-	Slot            int      // slot just unsealed
-	PrivateKey      [32]byte `cbor:"privkey"`    // private key for spending
-	PublicKey       [33]byte `cbor:"pubkey"`     // slot's pubkey (convenience, since could be calc'd from privkey)
-	MasterPublicKey [32]byte `cbor:"master_pk"`  // card's master private key
-	ChainCode       [32]byte `cbor:"chain_code"` // nonce provided by customer
+	Slot            int    // slot just unsealed
+	PrivateKey      []byte `cbor:"privkey"`    // private key for spending
+	PublicKey       []byte `cbor:"pubkey"`     // slot's pubkey (convenience, since could be calc'd from privkey)
+	MasterPublicKey []byte `cbor:"master_pk"`  // card's master private key
+	ChainCode       []byte `cbor:"chain_code"` // nonce provided by customer
 
 }
 
-func (transport *Transport) reader(r io.Reader, channel chan any) {
+type NewData struct {
+	CardResponse
+	Slot int
+}
+
+type ErrorData struct {
+	Error string `cbor:"error"`
+	Code  int
+}
+
+func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	buf := make([]byte, 1024)
 	_, err := r.Read(buf[:])
 
@@ -55,53 +65,55 @@ func (transport *Transport) reader(r io.Reader, channel chan any) {
 		return
 	}
 
-	// Create TagSet with tag number and Go type
-	tags := cbor.NewTagSet()
-	err = tags.Add(
-		cbor.TagOptions{EncTag: cbor.EncTagRequired, DecTag: cbor.DecTagRequired},
-		reflect.TypeOf(StatusData{}), // your custom type
-		1000,                         // CBOR tag number for your custom type
-	)
+	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
-	if err != nil {
-		print(err)
-	}
+	switch command.(type) {
+	case StatusCommand:
 
-	err = tags.Add(
-		cbor.TagOptions{EncTag: cbor.EncTagRequired, DecTag: cbor.DecTagRequired},
-		reflect.TypeOf(UnsealData{}), // your custom type
-		2000,                         // CBOR tag number for your custom type
-	)
+		var v StatusData
 
-	if err != nil {
-		print(err)
-	}
+		if err := decMode.Unmarshal(buf, &v); err != nil {
+			panic(err)
+		}
 
-	// Create decoding mode with TagSet
-	decodingMode, err := cbor.DecOptions{}.DecModeWithTags(tags)
-
-	if err != nil {
-		print(err)
-	}
-
-	//var status Status
-	var v interface{}
-
-	if err := decodingMode.Unmarshal(buf, &v); err != nil {
-		panic(err)
-	}
-
-	switch v := v.(type) {
-	case StatusData:
 		channel <- v
 
+	case UnsealCommand:
+
+		var v UnsealData
+
+		if err := decMode.Unmarshal(buf, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(buf, &e); err != nil {
+				panic(err)
+			}
+
+			channel <- e
+
+		}
+
+		channel <- v
+
+	default:
+
+		var v ErrorData
+
+		if err := decMode.Unmarshal(buf, &v); err != nil {
+			panic(err)
+		}
+
+		channel <- v
+
+		fmt.Println("Unknown command??")
 	}
 
 }
 
-func (transport Transport) Send(message interface{}, channel chan any) {
+func (transport Transport) Send(command any, channel chan any) {
 
-	cbor_serialized, err := cbor.Marshal(message)
+	cbor_serialized, err := cbor.Marshal(command)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
@@ -112,7 +124,7 @@ func (transport Transport) Send(message interface{}, channel chan any) {
 	}
 	defer connection.Close()
 
-	go transport.reader(connection, channel)
+	go transport.reader(connection, command, channel)
 	_, err = connection.Write(cbor_serialized)
 
 	if err != nil {
@@ -211,16 +223,15 @@ func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 
 func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemeralPublicKey, xcvc []byte) {
 
-	//privA, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	//pubA := privA.PublicKey
+	fmt.Println("########")
+	fmt.Println("# AUTH #")
+	fmt.Println("########")
 
 	cardPubKey, err := secp256k1.ParsePubKey(tapProtocol.Pubkey)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-
-	fmt.Printf("\ncardPubKey:  %x\n", cardPubKey.SerializeCompressed())
 
 	// Derive an ephemeral public/private keypair for performing ECDHE with
 	// the recipient.
@@ -229,7 +240,11 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemer
 		fmt.Println(err)
 		return
 	}
+
 	ephemeralPublicKey = ephemeralPrivateKey.PubKey().SerializeCompressed()
+
+	fmt.Print("\n")
+	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
 
 	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
 	sessionKey := sha256.Sum256(GenerateSharedSecret(ephemeralPrivateKey, cardPubKey))
@@ -242,6 +257,8 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (ephemer
 
 	xcvc = xor([]byte(cvc), mask)
 
+	fmt.Printf("xcvc %x\n", xcvc)
+
 	return
 
 }
@@ -250,20 +267,21 @@ type Command struct {
 	Cmd string `cbor:"cmd"`
 }
 
+type StatusCommand struct {
+	Command
+}
+
+type UnsealCommand struct {
+	Command
+	Auth
+	Slot int `cbor:"slot"`
+}
 type Auth struct {
 	EphemeralPubKey []byte `cbor:"epubkey"` //app's ephemeral public key
 	XCVC            []byte `cbor:"xcvc"`    //encrypted CVC value
 }
 
-type Unseal struct {
-	Command
-	Auth
-	Slot int `cbor:"slot"`
-}
-
-func main() {
-
-	command := Command{Cmd: "status"}
+func sendReceive(command any) {
 
 	channel := make(chan any)
 
@@ -271,42 +289,37 @@ func main() {
 
 	go transport.Send(command, channel)
 
-	status := <-channel
+	data := <-channel
 
-	fmt.Println(status)
-
-	switch status := status.(type) {
+	switch data := data.(type) {
 	case StatusData:
 
 		fmt.Println("##########")
 		fmt.Println("# STATUS #")
 		fmt.Println("##########")
 
-		fmt.Println("Proto:     ", status.Proto)
-		fmt.Println("Birth:     ", status.Birth)
-		fmt.Println("Slots:     ", status.Slots)
-		fmt.Println("Addr:      ", status.Addr)
-		fmt.Println("Ver:       ", status.Ver)
-		fmt.Printf("Pubkey:     %x\n", status.PublicKey)
-		fmt.Printf("Card Nonce: %x\n", status.CardNonce)
+		fmt.Println("Proto:     ", data.Proto)
+		fmt.Println("Birth:     ", data.Birth)
+		fmt.Println("Slots:     ", data.Slots)
+		fmt.Println("Addr:      ", data.Addr)
+		fmt.Println("Ver:       ", data.Ver)
+		fmt.Printf("Pubkey:     %x\n", data.PublicKey)
+		fmt.Printf("Card Nonce: %x\n", data.CardNonce)
 
 		var tapProtocol TapProtocol
 
-		tapProtocol.Pubkey = status.PublicKey
-		tapProtocol.CurrentCardNonce = status.CardNonce
+		tapProtocol.Pubkey = data.PublicKey
+		tapProtocol.CurrentCardNonce = data.CardNonce
 
 		fmt.Println("Card identity: ", tapProtocol.Identity())
 
 		ephemeralPublicKey, xcvc := tapProtocol.Authenticate("123456", "unseal")
-		fmt.Print("\n")
-		fmt.Printf("ephemeralPublicKey %+v\n", hex.EncodeToString(ephemeralPublicKey))
-		fmt.Printf("xcvc %+v\n", hex.EncodeToString(xcvc))
 
 		auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
 
-		unsealCommand := Unseal{Command: Command{Cmd: "unseal"}, Auth: auth, Slot: 0}
+		unsealCommand := UnsealCommand{Command: Command{Cmd: "unseal"}, Auth: auth, Slot: 0}
 
-		transport.Send(unsealCommand, channel)
+		sendReceive(unsealCommand)
 
 	case UnsealData:
 
@@ -314,13 +327,33 @@ func main() {
 		fmt.Println("# UNSEAL #")
 		fmt.Println("##########")
 
-		fmt.Println("Slot:     ", status.Slot)
-		fmt.Println("PrivateKey:     ", status.PrivateKey)
-		fmt.Println("PublicKey:     ", status.PublicKey)
-		fmt.Println("MasterPublicKey:      ", status.MasterPublicKey)
-		fmt.Println("ChainCode:       ", status.ChainCode)
-		fmt.Printf("Card Nonce: %x\n", status.CardNonce)
+		fmt.Println("Slot:             ", data.Slot)
+		fmt.Printf("Private Key:       %x\n", data.PrivateKey)
+		fmt.Printf("Public Key:        %x\n", data.PublicKey)
+		fmt.Printf("Master Public Key: %x\n", data.MasterPublicKey)
+		fmt.Printf("Chain Code:        %x\n", data.ChainCode)
+		fmt.Printf("Card Nonce:        %x\n", data.CardNonce)
 
+	case ErrorData:
+
+		fmt.Println("#########")
+		fmt.Println("# ERROR #")
+		fmt.Println("#########")
+
+		fmt.Println("Error: ", data.Error)
+		fmt.Println("Code:  ", data.Code)
+
+	default:
+
+		fmt.Println("UNKNOWN TYPE", data)
 	}
+
+}
+
+func main() {
+
+	command := StatusCommand{Command{Cmd: "status"}}
+
+	sendReceive(command)
 
 }
