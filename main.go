@@ -1,6 +1,7 @@
 package main
 
 import (
+	//"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
@@ -12,9 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/bech32"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+
 	"github.com/fxamacker/cbor/v2"
 )
 
@@ -254,9 +258,6 @@ func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	xBytes := result.X.Bytes()
 
 	fmt.Println("Y:", publicKey.Y().Text(2))
-	// Get the last digit of the big integer
-	//lastDigit := new(big.Int).Mod(publicKey.Y(), big.NewInt(10))
-	//fmt.Println("last digit:", lastDigit.Text(2))
 
 	y := new(big.Int)
 	y.SetBytes(result.Y.Bytes()[:])
@@ -435,6 +436,44 @@ func sendReceive(command any) {
 
 		fmt.Printf("Signature: %x\n", data.Signature)
 		fmt.Printf("Public Key: %x\n", data.PublicKey)
+
+		// Verify public key with signature
+
+		b := byte(tapProtocol.ActiveSlot)
+
+		//slotByte := make([]byte, 1)
+		//slotByte[0] = tapProtocol.ActiveSlot
+
+		message := append([]byte("OPENDIME"), tapProtocol.CurrentCardNonce[:]...)
+		message = append(message, data.CardNonce[:]...)
+		message = append(message, []byte{b}...)
+
+		messageDigest := sha256.Sum256([]byte(message))
+
+		fmt.Printf("message digest: %x\n", messageDigest)
+
+		r := new(btcec.ModNScalar)
+		r.SetByteSlice(data.Signature[0:31])
+
+		s := new(btcec.ModNScalar)
+		s.SetByteSlice(data.Signature[32:])
+
+		signature := ecdsa.NewSignature(r, s)
+
+		/*signature, err := ecdsa.ParseSignature(data.Signature[:])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}*/
+
+		publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		verified := signature.Verify(messageDigest[:], publicKey)
+
+		fmt.Println("VERIFIED", verified)
 
 		hash160 := btcutil.Hash160(data.PublicKey[:])
 
