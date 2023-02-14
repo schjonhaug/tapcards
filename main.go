@@ -65,6 +65,11 @@ type ReadData struct {
 
 }
 
+type CertificatesData struct {
+	//_                 struct{} `cbor:",toarray"`
+	certificatesChain []byte `cbor:"cert_chain"`
+}
+
 type ErrorData struct {
 	Code  int
 	Error string
@@ -112,6 +117,23 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	case NewCommand:
 
 		var v NewData
+
+		if err := decMode.Unmarshal(buf, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(buf, &e); err != nil {
+				panic(err)
+			}
+
+			channel <- e
+
+		}
+
+		channel <- v
+	case CertificatesCommand:
+
+		var v CertificatesData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
@@ -186,6 +208,7 @@ func (transport Transport) Send(command any, channel chan any) {
 // TAP PROTOCOL
 
 type TapProtocol struct {
+	Nonce            []byte
 	CurrentCardNonce [16]byte
 	CardPublicKey    [33]byte
 	SessionKey       []byte
@@ -362,6 +385,10 @@ type ReadCommand struct {
 	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 
+type CertificatesCommand struct {
+	Command
+}
+
 //
 
 func sendReceive(command any) {
@@ -439,14 +466,9 @@ func sendReceive(command any) {
 
 		// Verify public key with signature
 
-		b := byte(tapProtocol.ActiveSlot)
-
-		//slotByte := make([]byte, 1)
-		//slotByte[0] = tapProtocol.ActiveSlot
-
 		message := append([]byte("OPENDIME"), tapProtocol.CurrentCardNonce[:]...)
-		message = append(message, data.CardNonce[:]...)
-		message = append(message, []byte{b}...)
+		message = append(message, tapProtocol.Nonce[:]...)
+		message = append(message, []byte{byte(tapProtocol.ActiveSlot)}...)
 
 		messageDigest := sha256.Sum256([]byte(message))
 
@@ -494,6 +516,14 @@ func sendReceive(command any) {
 
 		tapProtocol.CurrentCardNonce = data.CardNonce
 
+	case CertificatesData:
+
+		fmt.Println("################")
+		fmt.Println("# CERTIFICATES #")
+		fmt.Println("################")
+
+		fmt.Printf("Certificates chain: %x\n", data.certificatesChain)
+
 	case ErrorData:
 
 		fmt.Println("#########")
@@ -519,6 +549,15 @@ func init() {
 }
 
 func main() {
+	/*
+		// Certificates
+
+		certificatesCommand := CertificatesCommand{
+			Command{Cmd: "certs"},
+		}
+		sendReceive(certificatesCommand)
+
+		return*/
 
 	// STATUS
 
@@ -545,6 +584,11 @@ func main() {
 	nonce := make([]byte, 16)
 	// then we can call rand.Read.
 	_, err = rand.Read(nonce)
+
+	fmt.Printf("\nNONCE: %x", nonce)
+
+	tapProtocol.Nonce = nonce
+
 	if err != nil {
 		log.Fatalf("error while generating random string: %s", err)
 	}
@@ -556,8 +600,6 @@ func main() {
 	}
 
 	sendReceive(readCommand)
-
-	return
 
 	// UNSEAL
 	command = Command{Cmd: "unseal"}
