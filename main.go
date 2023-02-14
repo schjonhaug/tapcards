@@ -65,7 +65,7 @@ type ReadData struct {
 }
 
 type CertificatesData struct {
-	CertificateChain [][]byte `cbor:"cert_chain"`
+	CertificateChain [][65]byte `cbor:"cert_chain"`
 }
 
 type ErrorData struct {
@@ -132,9 +132,6 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	case CertificatesCommand:
 
 		var v CertificatesData
-
-		fmt.Println(buf)
-		fmt.Printf("\n%x\n", buf)
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
@@ -289,18 +286,13 @@ func GenerateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 
 	// Perform a bitwise AND with 0x01
 	andResult := new(big.Int).And(y, big.NewInt(0x01))
-	fmt.Println("and Result:", andResult.Text(2))
 
 	// Perform a bitwise OR with 0x02
 	orResult := new(big.Int).Or(andResult, big.NewInt(0x02))
 
-	fmt.Println("orResult:", orResult.Text(2))
-
 	even := orResult.Bytes()
 
 	sharedSecret := append(even, xBytes[:]...)
-
-	println(len(sharedSecret))
 
 	return sharedSecret
 }
