@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
@@ -66,8 +65,7 @@ type ReadData struct {
 }
 
 type CertificatesData struct {
-	//_                 struct{} `cbor:",toarray"`
-	certificatesChain []byte `cbor:"cert_chain"`
+	CertificateChain [][]byte `cbor:"cert_chain"`
 }
 
 type ErrorData struct {
@@ -135,12 +133,16 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		var v CertificatesData
 
+		fmt.Println(buf)
+		fmt.Printf("\n%x\n", buf)
+
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
 			var e ErrorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
-				panic(err)
+				fmt.Println(err)
+
 			}
 
 			channel <- e
@@ -474,19 +476,30 @@ func sendReceive(command any) {
 
 		fmt.Printf("message digest: %x\n", messageDigest)
 
+		recId := data.Signature[0]
+		fmt.Printf("REC ID: %d\n", recId)
+		fmt.Println("REC ID: ", recId)
+
 		r := new(btcec.ModNScalar)
-		r.SetByteSlice(data.Signature[0:31])
+		ok := r.SetByteSlice(data.Signature[0:31])
+
+		println("OK ", ok)
 
 		s := new(btcec.ModNScalar)
-		s.SetByteSlice(data.Signature[32:])
+		ok = s.SetByteSlice(data.Signature[32:])
+		println("OK ", ok)
 
 		signature := ecdsa.NewSignature(r, s)
 
-		/*signature, err := ecdsa.ParseSignature(data.Signature[:])
-		if err != nil {
-			fmt.Println(err)
-			return
-		}*/
+		fmt.Printf("signature: %x\n", signature.Serialize())
+		/*
+			signature2, err := ecdsa.ParseSignature(data.Signature[:])
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			fmt.Println(signature2)*/
 
 		publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
 		if err != nil {
@@ -522,7 +535,7 @@ func sendReceive(command any) {
 		fmt.Println("# CERTIFICATES #")
 		fmt.Println("################")
 
-		fmt.Printf("Certificates chain: %x\n", data.certificatesChain)
+		fmt.Printf("Certificate chain: %x\n", data.CertificateChain[:])
 
 	case ErrorData:
 
@@ -549,15 +562,15 @@ func init() {
 }
 
 func main() {
-	/*
-		// Certificates
 
-		certificatesCommand := CertificatesCommand{
-			Command{Cmd: "certs"},
-		}
-		sendReceive(certificatesCommand)
+	// Certificates
 
-		return*/
+	certificatesCommand := CertificatesCommand{
+		Command{Cmd: "certs"},
+	}
+	sendReceive(certificatesCommand)
+
+	return
 
 	// STATUS
 
