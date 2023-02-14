@@ -547,12 +547,6 @@ func sendReceive(command any) {
 
 var tapProtocol TapProtocol
 
-func init() {
-	print("ASDAS")
-
-	//tapProtocol = TapProtocol{}
-}
-
 func main() {
 
 	// Certificates
