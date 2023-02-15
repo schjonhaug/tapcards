@@ -6,13 +6,15 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
+	"math/big"
+	"strings"
+
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/bech32"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
-	"math/big"
-	"strings"
 )
 
 // TAP PROTOCOL
@@ -21,7 +23,7 @@ type TapProtocol struct {
 	nonce            []byte
 	currentCardNonce [16]byte
 	cardPublicKey    [33]byte
-	sessionKey       []byte
+	sessionKey       [32]byte
 	activeSlot       int
 	numberOfSlots    int
 	transport        Transport
@@ -98,14 +100,14 @@ func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth
 	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
 
 	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
-	sessionKey := sha256.Sum256(generateSharedSecret(ephemeralPrivateKey, cardPublicKey))
+	tapProtocol.sessionKey = sha256.Sum256(generateSharedSecret(ephemeralPrivateKey, cardPublicKey))
 
-	fmt.Printf("Session Key:  %x\n", sessionKey)
+	fmt.Printf("Session Key:  %x\n", tapProtocol.sessionKey)
 	fmt.Printf("CurrentCardNonce:  %x\n", tapProtocol.currentCardNonce)
 
 	md := sha256.Sum256(append(tapProtocol.currentCardNonce[:], []byte(command.Cmd)...))
 
-	mask := xor(sessionKey[:], md[:])[:len(cvc)]
+	mask := xor(tapProtocol.sessionKey[:], md[:])[:len(cvc)]
 
 	xcvc := xor([]byte(cvc), mask)
 
@@ -240,6 +242,16 @@ func (tapProtocol *TapProtocol) sendReceive(command any) {
 		if tapProtocol.activeSlot < tapProtocol.numberOfSlots {
 			tapProtocol.activeSlot++
 		}
+
+		// Calculate and return private key
+
+		unencryptedPrivateKey := xor(data.PrivateKey[:], tapProtocol.sessionKey[:])
+
+		privateKey, _ := btcec.PrivKeyFromBytes(unencryptedPrivateKey)
+
+		wif, _ := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
+
+		fmt.Println(wif)
 
 	case NewData:
 

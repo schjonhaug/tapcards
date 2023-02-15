@@ -15,6 +15,8 @@ func main() {
 	fmt.Println(tapProtocol.ActiveSlot())
 	fmt.Println(tapProtocol.NumberOfSlots())
 
+	tapProtocol.Unseal("123456")
+
 	// Certificates
 	/*
 		certificatesCommand := CertificatesCommand{
