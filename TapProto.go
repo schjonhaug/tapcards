@@ -76,42 +76,41 @@ type ErrorData struct {
 
 // COMMANDS
 
-type Command struct {
+type command struct {
 	Cmd string `cbor:"cmd"`
 }
 
-type Auth struct {
+type auth struct {
 	EphemeralPubKey []byte `cbor:"epubkey"` //app's ephemeral public key
 	XCVC            []byte `cbor:"xcvc"`    //encrypted CVC value
 }
 
-type StatusCommand struct {
-	Cmd string `cbor:"cmd"`
+type statusCommand struct {
+	command
 }
 
-type UnsealCommand struct {
-	Cmd             string `cbor:"cmd"`
-	EphemeralPubKey []byte `cbor:"epubkey"` //app's ephemeral public key
-	XCVC            []byte `cbor:"xcvc"`    //encrypted CVC value
-	Slot            int    `cbor:"slot"`
+type unsealCommand struct {
+	command
+	auth
+	Slot int `cbor:"slot"`
 }
 
 type NewCommand struct {
-	Command
-	Auth
+	command
+	auth
 	Slot int `cbor:"slot"` // (optional: default zero) slot to be affected, must equal currently-active slot number
 	//ChainCode [32]byte `cbor:"chain_code"` // app's entropy share to be applied to new slot (optional on SATSCARD)
 
 }
 
 type ReadCommand struct {
-	Command
-	Auth
+	command
+	auth
 	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 
 type CertificatesCommand struct {
-	Command
+	command
 }
 
 func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
@@ -126,7 +125,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
 	switch command.(type) {
-	case StatusCommand:
+	case statusCommand:
 
 		var v StatusData
 
@@ -136,7 +135,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		channel <- v
 
-	case UnsealCommand:
+	case unsealCommand:
 
 		var v UnsealData
 
@@ -256,14 +255,14 @@ type TapProtocol struct {
 	NumberOfSlots    int
 }
 
-func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (*Auth, error) {
+func (tapProtocol TapProtocol) Authenticate(cvc string, command command) (*auth, error) {
 
 	fmt.Println("\n########")
 	fmt.Println("# AUTH #")
 	fmt.Println("########")
 
 	fmt.Println("CVC:", cvc)
-	//fmt.Println("Command:", command.Cmd)
+	fmt.Println("Command:", command.Cmd)
 
 	cardPublicKey, err := secp256k1.ParsePubKey(tapProtocol.CardPublicKey[:])
 	if err != nil {
@@ -289,7 +288,7 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (*Auth, 
 	fmt.Printf("Session Key:  %x\n", sessionKey)
 	fmt.Printf("CurrentCardNonce:  %x\n", tapProtocol.CurrentCardNonce)
 
-	md := sha256.Sum256(append(tapProtocol.CurrentCardNonce[:], []byte(command)...))
+	md := sha256.Sum256(append(tapProtocol.CurrentCardNonce[:], []byte(command.Cmd)...))
 
 	mask := xor(sessionKey[:], md[:])[:len(cvc)]
 
@@ -297,7 +296,7 @@ func (tapProtocol TapProtocol) Authenticate(cvc string, command string) (*Auth, 
 
 	fmt.Printf("xcvc %x\n", xcvc)
 
-	auth := Auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
+	auth := auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
 
 	return &auth, nil
 
@@ -307,14 +306,14 @@ func (tapProtocol *TapProtocol) Status() {
 
 	// STATUS
 
-	statusCommand := StatusCommand{Cmd: "status"}
+	statusCommand := statusCommand{command{Cmd: "status"}}
 	tapProtocol.sendReceive(statusCommand)
 
 }
 
-func (tapProtocol *TapProtocol) Unseal(cvc string)/* (*UnsealData, Error)*/ {
+func (tapProtocol *TapProtocol) Unseal(cvc string) /* (*UnsealData, Error)*/ {
 
-	command := "unseal"
+	command := command{Cmd: "unseal"}
 
 	// UNSEAL
 	auth, err := tapProtocol.Authenticate(cvc, command)
@@ -324,11 +323,10 @@ func (tapProtocol *TapProtocol) Unseal(cvc string)/* (*UnsealData, Error)*/ {
 		return
 	}
 
-	unsealCommand := UnsealCommand{
-		Cmd:             command,
-		EphemeralPubKey: auth.EphemeralPubKey,
-		XCVC:            auth.XCVC,
-		Slot:            tapProtocol.ActiveSlot,
+	unsealCommand := unsealCommand{
+		command: command,
+		auth:    *auth,
+		Slot:    tapProtocol.ActiveSlot,
 	}
 
 	tapProtocol.sendReceive(unsealCommand)
