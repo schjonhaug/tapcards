@@ -3,9 +3,11 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 
@@ -128,8 +130,7 @@ func (tapProtocol *TapProtocol) Status() {
 
 }
 
-// UNSEAL
-func (tapProtocol *TapProtocol) Unseal(cvc string) /* (*UnsealData, Error)*/ {
+func (tapProtocol *TapProtocol) Unseal(cvc string) (*string, error) {
 
 	command := command{Cmd: "unseal"}
 
@@ -137,7 +138,7 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) /* (*UnsealData, Error)*/ {
 
 	if err != nil {
 		fmt.Println(err)
-		return
+		return nil, err
 	}
 
 	unsealCommand := unsealCommand{
@@ -146,7 +147,54 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) /* (*UnsealData, Error)*/ {
 		Slot:    tapProtocol.activeSlot,
 	}
 
-	tapProtocol.sendReceive(unsealCommand)
+	data, err := tapProtocol.sendReceive(unsealCommand)
+
+	switch data := data.(type) {
+	case string:
+		return &data, nil
+		//case ErrorData:
+		//	return nil, &data
+
+	}
+
+	return nil, nil
+
+}
+
+// READ
+// read a SATSCARD’s current payment address
+func (tapProtocol *TapProtocol) Read(cvc string) {
+
+	// Create nonce
+	nonce := make([]byte, 16)
+	_, err := rand.Read(nonce)
+
+	fmt.Printf("\nNONCE: %x", nonce)
+
+	tapProtocol.nonce = nonce
+
+	if err != nil {
+		log.Fatalf("error while generating random string: %s", err)
+	}
+
+	// READ
+
+	command := command{Cmd: "read"}
+
+	auth, err := tapProtocol.authenticate(cvc, command)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	readCommand := readCommand{
+		command: command,
+		auth:    *auth,
+		nonce:   nonce,
+	}
+
+	tapProtocol.sendReceive(readCommand)
 
 }
 
@@ -194,7 +242,7 @@ func generateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	return sharedSecret
 }
 
-func (tapProtocol *TapProtocol) sendReceive(command any) {
+func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 	channel := make(chan any)
 
@@ -221,6 +269,8 @@ func (tapProtocol *TapProtocol) sendReceive(command any) {
 		tapProtocol.currentCardNonce = data.CardNonce
 		tapProtocol.activeSlot = data.Slots[0]
 		tapProtocol.numberOfSlots = data.Slots[1]
+
+		return nil, nil
 
 	case UnsealData:
 
@@ -251,7 +301,7 @@ func (tapProtocol *TapProtocol) sendReceive(command any) {
 
 		wif, _ := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
 
-		fmt.Println(wif)
+		return wif.String(), nil
 
 	case NewData:
 
@@ -263,7 +313,7 @@ func (tapProtocol *TapProtocol) sendReceive(command any) {
 
 		tapProtocol.currentCardNonce = data.CardNonce
 
-	case ReadData:
+	case readData:
 
 		fmt.Println("########")
 		fmt.Println("# READ #")
@@ -356,5 +406,7 @@ func (tapProtocol *TapProtocol) sendReceive(command any) {
 
 		fmt.Println("UNKNOWN TYPE", data)
 	}
+
+	return nil, nil
 
 }

@@ -15,7 +15,16 @@ func main() {
 	fmt.Println(tapProtocol.ActiveSlot())
 	fmt.Println(tapProtocol.NumberOfSlots())
 
-	tapProtocol.Unseal("123456")
+	wif, err := tapProtocol.Unseal("123456")
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(*wif)
+
+	//tapProtocol.Read("123456")
 
 	// Certificates
 	/*
@@ -26,39 +35,6 @@ func main() {
 
 		return
 
-		// READ
-
-		command := Command{Cmd: "read"}
-
-		auth, err := tapProtocol.Authenticate("123456", command)
-
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		// Create nonce
-
-		// first step is to create a slice of bytes with the desired length
-		nonce := make([]byte, 16)
-		// then we can call rand.Read.
-		_, err = rand.Read(nonce)
-
-		fmt.Printf("\nNONCE: %x", nonce)
-
-		tapProtocol.Nonce = nonce
-
-		if err != nil {
-			log.Fatalf("error while generating random string: %s", err)
-		}
-
-		readCommand := ReadCommand{
-			Command: command,
-			Auth:    *auth,
-			Nonce:   nonce,
-		}
-
-		sendReceive(readCommand)
 
 		// NEW
 

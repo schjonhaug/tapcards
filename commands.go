@@ -31,10 +31,10 @@ type NewCommand struct {
 
 }
 
-type ReadCommand struct {
+type readCommand struct {
 	command
 	auth
-	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
+	nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 
 type CertificatesCommand struct {

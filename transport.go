@@ -89,9 +89,9 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 		}
 
 		channel <- v
-	case ReadCommand:
+	case readCommand:
 
-		var v ReadData
+		var v readData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 

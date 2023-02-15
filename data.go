@@ -32,7 +32,7 @@ type NewData struct {
 	Slot int
 }
 
-type ReadData struct {
+type readData struct {
 	CardResponse
 	Signature [64]byte `cbor:"sig"`    //  signature over a bunch of fields using private key of slot
 	PublicKey [33]byte `cbor:"pubkey"` // public key for this slot/derivation
