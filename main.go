@@ -1,4 +1,4 @@
-package main
+package tapprotocol
 
 import (
 	"fmt"
@@ -14,15 +14,15 @@ func main() {
 	fmt.Println(tapProtocol.Identity())
 	fmt.Println(tapProtocol.ActiveSlot())
 	fmt.Println(tapProtocol.NumberOfSlots())
+	/*
+		wif, err := tapProtocol.Unseal("123456")
 
-	wif, err := tapProtocol.Unseal("123456")
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println(*wif)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	*/
+	//fmt.Println(*wif)
 
 	//tapProtocol.Read("123456")
 

@@ -1,11 +1,12 @@
-//package main
+//package tapprotocol
 
-package main
+package tapprotocol
 
 import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base32"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -130,7 +131,20 @@ func (tapProtocol *TapProtocol) Status() {
 
 }
 
-func (tapProtocol *TapProtocol) Unseal(cvc string) (*string, error) {
+// Hello returns a greeting for the named person.
+func Hello(name string) (string, error) {
+	// If no name was given, return an error with a message.
+	if name == "" {
+		return "", errors.New("empty name")
+	}
+
+	// If a name was received, return a value that embeds the name
+	// in a greeting message.
+	message := fmt.Sprintf("Hi, %v. Welcome!", name)
+	return message, nil
+}
+
+func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 
 	command := command{Cmd: "unseal"}
 
@@ -138,7 +152,7 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (*string, error) {
 
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return "", err
 	}
 
 	unsealCommand := unsealCommand{
@@ -149,15 +163,24 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (*string, error) {
 
 	data, err := tapProtocol.sendReceive(unsealCommand)
 
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
 	switch data := data.(type) {
 	case string:
-		return &data, nil
-		//case ErrorData:
-		//	return nil, &data
+		fmt.Println(data)
+		return data, nil
+	case ErrorData:
+		fmt.Println("FOUND ERRORDTA")
+		return "", errors.New(data.Error)
 
 	}
 
-	return nil, nil
+	fmt.Println("DID NOT MATCH ANY DATA")
+
+	return "nil", nil
 
 }
 
@@ -401,6 +424,8 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 		fmt.Println("Error: ", data.Error)
 		fmt.Println("Code:  ", data.Code)
+
+		return data, nil
 
 	default:
 
