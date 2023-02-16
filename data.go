@@ -1,5 +1,4 @@
-// package tapprotocol
-package tapprotocol
+package main
 
 // DATA
 

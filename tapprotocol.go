@@ -1,6 +1,4 @@
-//package tapprotocol
-
-package tapprotocol
+package main
 
 import (
 	"crypto/rand"
@@ -8,7 +6,6 @@ import (
 	"encoding/base32"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"strings"
 
@@ -130,20 +127,6 @@ func (tapProtocol *TapProtocol) Status() {
 	tapProtocol.sendReceive(statusCommand)
 
 }
-
-// Hello returns a greeting for the named person.
-func Hello(name string) (string, error) {
-	// If no name was given, return an error with a message.
-	if name == "" {
-		return "", errors.New("empty name")
-	}
-
-	// If a name was received, return a value that embeds the name
-	// in a greeting message.
-	message := fmt.Sprintf("Hi, %v. Welcome!", name)
-	return message, nil
-}
-
 func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 
 	command := command{Cmd: "unseal"}
@@ -164,7 +147,7 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 	data, err := tapProtocol.sendReceive(unsealCommand)
 
 	if err != nil {
-		fmt.Println(err)
+
 		return "", err
 	}
 
@@ -176,29 +159,27 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 		fmt.Println("FOUND ERRORDTA")
 		return "", errors.New(data.Error)
 
+	default:
+		return "", errors.New("undefined error")
+
 	}
-
-	fmt.Println("DID NOT MATCH ANY DATA")
-
-	return "nil", nil
 
 }
 
 // READ
 // read a SATSCARD’s current payment address
-func (tapProtocol *TapProtocol) Read(cvc string) {
+func (tapProtocol *TapProtocol) Read(cvc string) (string, error) {
 
 	// Create nonce
 	nonce := make([]byte, 16)
 	_, err := rand.Read(nonce)
 
+	if err != nil {
+		return "", nil
+	}
 	fmt.Printf("\nNONCE: %x", nonce)
 
 	tapProtocol.nonce = nonce
-
-	if err != nil {
-		log.Fatalf("error while generating random string: %s", err)
-	}
 
 	// READ
 
@@ -207,17 +188,31 @@ func (tapProtocol *TapProtocol) Read(cvc string) {
 	auth, err := tapProtocol.authenticate(cvc, command)
 
 	if err != nil {
-		fmt.Println(err)
-		return
+		return "", nil
 	}
 
 	readCommand := readCommand{
 		command: command,
 		auth:    *auth,
-		nonce:   nonce,
+		Nonce:   nonce,
 	}
 
-	tapProtocol.sendReceive(readCommand)
+	data, err := tapProtocol.sendReceive(readCommand)
+
+	if err != nil {
+		return "", nil
+	}
+
+	switch data := data.(type) {
+	case string:
+		return data, nil
+	case ErrorData:
+		return "", errors.New(data.Error)
+
+	default:
+		return "", errors.New("undefined error")
+
+	}
 
 }
 
@@ -316,13 +311,17 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 			tapProtocol.activeSlot++
 		}
 
-		// Calculate and return private key
+		// Calculate and return private key as wif
 
-		unencryptedPrivateKey := xor(data.PrivateKey[:], tapProtocol.sessionKey[:])
+		unencryptedPrivateKeyBytes := xor(data.PrivateKey[:], tapProtocol.sessionKey[:])
 
-		privateKey, _ := btcec.PrivKeyFromBytes(unencryptedPrivateKey)
+		privateKey, _ := btcec.PrivKeyFromBytes(unencryptedPrivateKeyBytes)
 
-		wif, _ := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
+		wif, err := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
+
+		if err != nil {
+			return "", err
+		}
 
 		return wif.String(), nil
 
@@ -353,60 +352,47 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 		messageDigest := sha256.Sum256([]byte(message))
 
-		fmt.Printf("message digest: %x\n", messageDigest)
-
-		recId := data.Signature[0]
-		fmt.Printf("REC ID: %d\n", recId)
-		fmt.Println("REC ID: ", recId)
-
 		r := new(btcec.ModNScalar)
-		ok := r.SetByteSlice(data.Signature[0:31])
-
-		println("OK ", ok)
+		r.SetByteSlice(data.Signature[0:32])
 
 		s := new(btcec.ModNScalar)
-		ok = s.SetByteSlice(data.Signature[32:])
-		println("OK ", ok)
+		s.SetByteSlice(data.Signature[32:])
 
 		signature := ecdsa.NewSignature(r, s)
 
-		fmt.Printf("signature: %x\n", signature.Serialize())
-		/*
-			signature2, err := ecdsa.ParseSignature(data.Signature[:])
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			fmt.Println(signature2)*/
-
 		publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
 		if err != nil {
-			fmt.Println(err)
+			return "", err
 		}
 
 		verified := signature.Verify(messageDigest[:], publicKey)
 
-		fmt.Println("VERIFIED", verified)
+		if !verified {
+			return "", errors.New("invalid signature")
+		}
+
+		// Convert to address
 
 		hash160 := btcutil.Hash160(data.PublicKey[:])
 
-		conv, err := bech32.ConvertBits(hash160, 8, 5, true)
+		convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
 		if err != nil {
-			fmt.Println("Error:", err)
+			return "", err
 		}
 
 		zero := make([]byte, 1)
 
-		encoded, err := bech32.Encode("bc", append(zero, conv...))
+		encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
 		if err != nil {
-			fmt.Println("Error:", err)
+			return "", err
 		}
 
 		// Show the encoded data.
 		fmt.Println("Encoded Data:", encoded)
 
 		tapProtocol.currentCardNonce = data.CardNonce
+
+		return encoded, nil
 
 	case CertificatesData:
 

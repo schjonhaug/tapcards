@@ -1,6 +1,4 @@
-package tapprotocol
-
-//package tapprotocol
+package main
 
 // COMMANDS
 
@@ -34,7 +32,7 @@ type NewCommand struct {
 type readCommand struct {
 	command
 	auth
-	nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
+	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 
 type CertificatesCommand struct {

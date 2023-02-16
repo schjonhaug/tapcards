@@ -1,19 +1,21 @@
-package tapprotocol
+package main
 
 import (
 	"fmt"
 )
 
-var tapProtocol TapProtocol
-
 func main() {
 
+	var tapProtocol TapProtocol
 	// STATUS
 
 	tapProtocol.Status()
 	fmt.Println(tapProtocol.Identity())
 	fmt.Println(tapProtocol.ActiveSlot())
 	fmt.Println(tapProtocol.NumberOfSlots())
+
+	tapProtocol.Read("123456")
+
 	/*
 		wif, err := tapProtocol.Unseal("123456")
 
