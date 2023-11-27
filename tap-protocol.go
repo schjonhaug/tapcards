@@ -1,4 +1,4 @@
-package main
+package tapprotocol
 
 import (
 	"crypto/rand"
@@ -78,7 +78,7 @@ func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth
 	fmt.Println("# AUTH #")
 	fmt.Println("########")
 
-	fmt.Println("CVC:", cvc)
+	fmt.Println("CVC:    ", cvc)
 	fmt.Println("Command:", command.Cmd)
 
 	cardPublicKey, err := secp256k1.ParsePubKey(tapProtocol.cardPublicKey[:])
@@ -122,12 +122,20 @@ func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth
 // STATUS
 func (tapProtocol *TapProtocol) Status() {
 
+	fmt.Println("----------------------------")
+	fmt.Println("Status")
+	fmt.Println("----------------------------")
+
 	statusCommand := statusCommand{command{Cmd: "status"}}
 
 	tapProtocol.sendReceive(statusCommand)
 
 }
 func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
+
+	fmt.Println("----------------------------")
+	fmt.Println("Unseal")
+	fmt.Println("----------------------------")
 
 	command := command{Cmd: "unseal"}
 
@@ -153,10 +161,10 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 
 	switch data := data.(type) {
 	case string:
-		fmt.Println(data)
+
 		return data, nil
 	case ErrorData:
-		fmt.Println("FOUND ERRORDTA")
+		fmt.Println("FOUND ERROR DATA")
 		return "", errors.New(data.Error)
 
 	default:
@@ -166,9 +174,73 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 
 }
 
+func (tapProtocol *TapProtocol) Certificates() {
+
+	//TODO
+
+	fmt.Println("------------")
+	fmt.Println("Certificates")
+	fmt.Println("------------")
+
+	certificatesCommand := CertificatesCommand{
+		command{Cmd: "certs"},
+	}
+
+	tapProtocol.sendReceive(certificatesCommand)
+
+}
+
+func (tapProtocol *TapProtocol) New(cvc string) (string, error) {
+
+	//TODO
+
+	fmt.Println("------------")
+	fmt.Println("New")
+	fmt.Println("------------")
+
+	// NEW
+
+	// Create nonce
+	nonce := make([]byte, 16)
+	_, err := rand.Read(nonce)
+
+	if err != nil {
+		return "", nil
+	}
+	fmt.Printf("\nNONCE: %x", nonce)
+
+	tapProtocol.nonce = nonce
+
+	// READ
+
+	command := command{Cmd: "new"}
+
+	auth, err := tapProtocol.authenticate(cvc, command)
+
+	if err != nil {
+		fmt.Println(err)
+		return "", nil
+	}
+
+	newCommand := newCommand{
+		command: command,
+		Slot:    tapProtocol.activeSlot, //TODO check maximum
+		auth:    *auth,
+	}
+
+	tapProtocol.sendReceive(newCommand)
+
+	return "", nil
+
+}
+
 // READ
 // read a SATSCARD’s current payment address
-func (tapProtocol *TapProtocol) Read(cvc string) (string, error) {
+func (tapProtocol *TapProtocol) ReadCurrentPaymentAddress(cvc string) (string, error) {
+
+	fmt.Println("----------------------------")
+	fmt.Println("Read current payment address")
+	fmt.Println("----------------------------")
 
 	// Create nonce
 	nonce := make([]byte, 16)
@@ -241,8 +313,6 @@ func generateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	secp256k1.ScalarMultNonConst(&privateKey.Key, &point, &result)
 	result.ToAffine()
 	xBytes := result.X.Bytes()
-
-	fmt.Println("Y:", publicKey.Y().Text(2))
 
 	y := new(big.Int)
 	y.SetBytes(result.Y.Bytes()[:])

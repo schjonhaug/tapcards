@@ -1,4 +1,4 @@
-package main
+package tapprotocol
 
 // COMMANDS
 
@@ -21,7 +21,7 @@ type unsealCommand struct {
 	Slot int `cbor:"slot"`
 }
 
-type NewCommand struct {
+type newCommand struct {
 	command
 	auth
 	Slot int `cbor:"slot"` // (optional: default zero) slot to be affected, must equal currently-active slot number

@@ -1,4 +1,4 @@
-package main
+package tapprotocol
 
 import (
 	"fmt"
@@ -54,7 +54,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 		}
 
 		channel <- v
-	case NewCommand:
+	case newCommand:
 
 		var v NewData
 
