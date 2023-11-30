@@ -13,13 +13,27 @@ func main() {
 	var tapProtocol tapprotocol.TapProtocol
 	// STATUS
 
-	tapProtocol.Status()
+	err := tapProtocol.Status()
+
+	if err != nil {
+		fmt.Println("YOU NEED TO CONNECT YOUR TAP CARD")
+		fmt.Println(err)
+		return
+	}
+
 	fmt.Println("Active slot", tapProtocol.ActiveSlot())
-	//fmt.Println(tapProtocol.NumberOfSlots())
+	fmt.Println(tapProtocol.NumberOfSlots())
 
 	fmt.Println("Identity: " + tapProtocol.Identity())
 
-	tapProtocol.ReadCurrentPaymentAddress(cvc)
+	paymentAddress, err := tapProtocol.Read(cvc)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(paymentAddress)
 
 	wif, err := tapProtocol.Unseal(cvc)
 
@@ -34,6 +48,13 @@ func main() {
 
 	// TODO tapProtocol.Certificates()
 
-	tapProtocol.New(cvc)
+	slot, err := tapProtocol.New(cvc)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("Slot: ", slot)
 
 }

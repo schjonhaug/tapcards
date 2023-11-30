@@ -71,7 +71,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 		}
 
 		channel <- v
-	case CertificatesCommand:
+	case certsCommand:
 
 		var v CertificatesData
 

@@ -72,55 +72,8 @@ func (tapProtocol *TapProtocol) Identity() string {
 
 }
 
-func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth, error) {
-
-	fmt.Println("\n########")
-	fmt.Println("# AUTH #")
-	fmt.Println("########")
-
-	fmt.Println("CVC:    ", cvc)
-	fmt.Println("Command:", command.Cmd)
-
-	cardPublicKey, err := secp256k1.ParsePubKey(tapProtocol.cardPublicKey[:])
-	if err != nil {
-		return nil, err
-	}
-
-	// Derive an ephemeral public/private keypair for performing ECDHE with
-	// the recipient.
-	ephemeralPrivateKey, err := secp256k1.GeneratePrivateKey()
-	if err != nil {
-
-		return nil, err
-	}
-
-	ephemeralPublicKey := ephemeralPrivateKey.PubKey().SerializeCompressed()
-
-	fmt.Print("\n")
-	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
-
-	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
-	tapProtocol.sessionKey = sha256.Sum256(generateSharedSecret(ephemeralPrivateKey, cardPublicKey))
-
-	fmt.Printf("Session Key:  %x\n", tapProtocol.sessionKey)
-	fmt.Printf("CurrentCardNonce:  %x\n", tapProtocol.currentCardNonce)
-
-	md := sha256.Sum256(append(tapProtocol.currentCardNonce[:], []byte(command.Cmd)...))
-
-	mask := xor(tapProtocol.sessionKey[:], md[:])[:len(cvc)]
-
-	xcvc := xor([]byte(cvc), mask)
-
-	fmt.Printf("xcvc %x\n", xcvc)
-
-	auth := auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
-
-	return &auth, nil
-
-}
-
 // STATUS
-func (tapProtocol *TapProtocol) Status() {
+func (tapProtocol *TapProtocol) Status() error {
 
 	fmt.Println("----------------------------")
 	fmt.Println("Status")
@@ -128,7 +81,9 @@ func (tapProtocol *TapProtocol) Status() {
 
 	statusCommand := statusCommand{command{Cmd: "status"}}
 
-	tapProtocol.sendReceive(statusCommand)
+	_, error := tapProtocol.sendReceive(statusCommand)
+
+	return error
 
 }
 func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
@@ -182,7 +137,7 @@ func (tapProtocol *TapProtocol) Certificates() {
 	fmt.Println("Certificates")
 	fmt.Println("------------")
 
-	certificatesCommand := CertificatesCommand{
+	certificatesCommand := certsCommand{
 		command{Cmd: "certs"},
 	}
 
@@ -190,7 +145,7 @@ func (tapProtocol *TapProtocol) Certificates() {
 
 }
 
-func (tapProtocol *TapProtocol) New(cvc string) (string, error) {
+func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
 	//TODO
 
@@ -205,7 +160,7 @@ func (tapProtocol *TapProtocol) New(cvc string) (string, error) {
 	_, err := rand.Read(nonce)
 
 	if err != nil {
-		return "", nil
+		return -1, err
 	}
 	fmt.Printf("\nNONCE: %x", nonce)
 
@@ -219,7 +174,7 @@ func (tapProtocol *TapProtocol) New(cvc string) (string, error) {
 
 	if err != nil {
 		fmt.Println(err)
-		return "", nil
+		return -1, err
 	}
 
 	newCommand := newCommand{
@@ -228,15 +183,29 @@ func (tapProtocol *TapProtocol) New(cvc string) (string, error) {
 		auth:    *auth,
 	}
 
-	tapProtocol.sendReceive(newCommand)
+	data, err := tapProtocol.sendReceive(newCommand)
 
-	return "", nil
+	if err != nil {
+		return 0, err
+	}
+
+	switch data := data.(type) {
+	case int:
+		return data, nil
+	case ErrorData:
+		fmt.Println("FOUND ERROR DATA")
+		return -1, errors.New(data.Error)
+
+	default:
+		return -1, errors.New("undefined error")
+
+	}
 
 }
 
 // READ
 // read a SATSCARD’s current payment address
-func (tapProtocol *TapProtocol) ReadCurrentPaymentAddress(cvc string) (string, error) {
+func (tapProtocol *TapProtocol) Read(cvc string) (string, error) {
 
 	fmt.Println("----------------------------")
 	fmt.Println("Read current payment address")
@@ -247,7 +216,7 @@ func (tapProtocol *TapProtocol) ReadCurrentPaymentAddress(cvc string) (string, e
 	_, err := rand.Read(nonce)
 
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	fmt.Printf("\nNONCE: %x", nonce)
 
@@ -260,7 +229,7 @@ func (tapProtocol *TapProtocol) ReadCurrentPaymentAddress(cvc string) (string, e
 	auth, err := tapProtocol.authenticate(cvc, command)
 
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	readCommand := readCommand{
@@ -272,7 +241,7 @@ func (tapProtocol *TapProtocol) ReadCurrentPaymentAddress(cvc string) (string, e
 	data, err := tapProtocol.sendReceive(readCommand)
 
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	switch data := data.(type) {
@@ -288,6 +257,57 @@ func (tapProtocol *TapProtocol) ReadCurrentPaymentAddress(cvc string) (string, e
 
 }
 
+func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth, error) {
+
+	fmt.Println("\n########")
+	fmt.Println("# AUTH #")
+	fmt.Println("########")
+
+	fmt.Println("CVC:    ", cvc)
+	fmt.Println("Command:", command.Cmd)
+
+	cardPublicKey, err := secp256k1.ParsePubKey(tapProtocol.cardPublicKey[:])
+	if err != nil {
+		return nil, err
+	}
+
+	// Derive an ephemeral public/private keypair for performing ECDHE with
+	// the recipient.
+	ephemeralPrivateKey, err := secp256k1.GeneratePrivateKey()
+	if err != nil {
+
+		return nil, err
+	}
+
+	ephemeralPublicKey := ephemeralPrivateKey.PubKey().SerializeCompressed()
+
+	fmt.Print("\n")
+	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
+
+	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
+	tapProtocol.sessionKey = sha256.Sum256(generateSharedSecret(ephemeralPrivateKey, cardPublicKey))
+
+	fmt.Printf("Session Key:  %x\n", tapProtocol.sessionKey)
+	fmt.Printf("CurrentCardNonce:  %x\n", tapProtocol.currentCardNonce)
+
+	md := sha256.Sum256(append(tapProtocol.currentCardNonce[:], []byte(command.Cmd)...))
+
+	mask := xor(tapProtocol.sessionKey[:], md[:])[:len(cvc)]
+
+	xcvc := xor([]byte(cvc), mask)
+
+	fmt.Printf("xcvc %x\n", xcvc)
+
+	auth := auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
+
+	return &auth, nil
+
+}
+
+// xor performs a bitwise XOR operation on two byte slices.
+// It takes two byte slices, a and b, as input and returns a new byte slice, c,
+// where each element of c is the result of XOR operation between the corresponding elements of a and b.
+// If the input slices have different lengths, it panics.
 func xor(a, b []byte) []byte {
 
 	if len(a) != len(b) {
@@ -404,6 +424,9 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 		fmt.Println("Slot:             ", data.Slot)
 
 		tapProtocol.currentCardNonce = data.CardNonce
+		tapProtocol.activeSlot = data.Slot
+
+		return data.Slot, nil
 
 	case readData:
 
