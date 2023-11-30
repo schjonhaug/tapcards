@@ -147,26 +147,11 @@ func (tapProtocol *TapProtocol) Certificates() {
 
 func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
-	//TODO
-
 	fmt.Println("------------")
 	fmt.Println("New")
 	fmt.Println("------------")
 
 	// NEW
-
-	// Create nonce
-	nonce := make([]byte, 16)
-	_, err := rand.Read(nonce)
-
-	if err != nil {
-		return -1, err
-	}
-	fmt.Printf("\nNONCE: %x", nonce)
-
-	tapProtocol.nonce = nonce
-
-	// READ
 
 	command := command{Cmd: "new"}
 
@@ -211,22 +196,17 @@ func (tapProtocol *TapProtocol) Read(cvc string) (string, error) {
 	fmt.Println("Read current payment address")
 	fmt.Println("----------------------------")
 
-	// Create nonce
-	nonce := make([]byte, 16)
-	_, err := rand.Read(nonce)
-
-	if err != nil {
-		return "", err
-	}
-	fmt.Printf("\nNONCE: %x", nonce)
-
-	tapProtocol.nonce = nonce
-
 	// READ
 
 	command := command{Cmd: "read"}
 
 	auth, err := tapProtocol.authenticate(cvc, command)
+
+	if err != nil {
+		return "", err
+	}
+
+	nonce, err := tapProtocol.createNonce()
 
 	if err != nil {
 		return "", err
@@ -348,6 +328,23 @@ func generateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	sharedSecret := append(even, xBytes[:]...)
 
 	return sharedSecret
+}
+
+func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
+
+	// Create nonce
+	nonce := make([]byte, 16)
+	_, err := rand.Read(nonce)
+
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("\nNONCE: %x", nonce)
+
+	tapProtocol.nonce = nonce
+
+	return nonce, nil
+
 }
 
 func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
