@@ -13,6 +13,7 @@ import (
 type Transport struct {
 	EphemeralPubKey []byte
 	XCVC            []byte
+	connection      net.Conn
 }
 
 func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
@@ -25,8 +26,6 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	}
 
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
-
-	fmt.Println("Switch on command", command)
 
 	switch command.(type) {
 	case statusCommand:
@@ -142,6 +141,18 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 }
 
+func (transport *Transport) Connect() {
+	connection, err := net.Dial("unix", "/tmp/ecard-pipe")
+	if err != nil {
+		log.Fatal(err)
+	}
+	transport.connection = connection
+}
+
+func (transport Transport) Disconnect() {
+	transport.connection.Close()
+}
+
 func (transport Transport) Send(command any, channel chan any) {
 
 	cbor_serialized, err := cbor.Marshal(command)
@@ -149,14 +160,16 @@ func (transport Transport) Send(command any, channel chan any) {
 		fmt.Println("error:", err)
 	}
 
-	connection, err := net.Dial("unix", "/tmp/ecard-pipe")
+	fmt.Println("Sending command: ", command)
+
+	/*connection, err := net.Dial("unix", "/tmp/ecard-pipe")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer connection.Close()
+	defer connection.Close()*/
 
-	go transport.reader(connection, command, channel)
-	_, err = connection.Write(cbor_serialized)
+	go transport.reader(transport.connection, command, channel)
+	_, err = transport.connection.Write(cbor_serialized)
 
 	if err != nil {
 		log.Fatal("write error:", err)

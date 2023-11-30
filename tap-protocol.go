@@ -20,13 +20,14 @@ import (
 // TAP PROTOCOL
 
 type TapProtocol struct {
-	nonce            []byte
-	currentCardNonce [16]byte
-	cardPublicKey    [33]byte
-	sessionKey       [32]byte
-	activeSlot       int
-	numberOfSlots    int
-	transport        Transport
+	nonce                []byte
+	currentCardNonce     [16]byte
+	cardPublicKey        [33]byte
+	sessionKey           [32]byte
+	activeSlot           int
+	numberOfSlots        int
+	transport            Transport
+	currentSlotPublicKey [33]byte
 }
 
 // Active slot number
@@ -75,6 +76,15 @@ func (tapProtocol *TapProtocol) Identity() string {
 // STATUS
 func (tapProtocol *TapProtocol) Status() error {
 
+	tapProtocol.transport.Connect()
+	defer tapProtocol.transport.Disconnect()
+
+	return tapProtocol.status()
+
+}
+
+func (tapProtocol *TapProtocol) status() error {
+
 	fmt.Println("----------------------------")
 	fmt.Println("Status")
 	fmt.Println("----------------------------")
@@ -86,6 +96,7 @@ func (tapProtocol *TapProtocol) Status() error {
 	return error
 
 }
+
 func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 
 	fmt.Println("----------------------------")
@@ -130,6 +141,18 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 
 func (tapProtocol *TapProtocol) Certs() error {
 
+	tapProtocol.transport.Connect()
+	defer tapProtocol.transport.Disconnect()
+
+	return tapProtocol.certs()
+
+}
+
+func (tapProtocol *TapProtocol) certs() error {
+
+	tapProtocol.status()
+	tapProtocol.read()
+
 	//TODO
 
 	fmt.Println("------------")
@@ -140,10 +163,7 @@ func (tapProtocol *TapProtocol) Certs() error {
 		command{Cmd: "certs"},
 	}
 
-	fmt.Println("certsCommand")
-
 	data, err := tapProtocol.sendReceive(certsCommand)
-	fmt.Println("return from sendReceive")
 
 	if err != nil {
 		return err
@@ -154,8 +174,6 @@ func (tapProtocol *TapProtocol) Certs() error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("Created nonce")
 
 	switch data := data.(type) {
 	case certificatesData:
@@ -171,17 +189,6 @@ func (tapProtocol *TapProtocol) Certs() error {
 		s.SetByteSlice(firstSignature[32:])
 
 		signature := ecdsa.NewSignature(r, s)
-
-		/*publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
-		if err != nil {
-			return "", err
-		}*/
-
-		verified := signature.Verify(messageDigest[:], publicKey)
-
-		if !verified {
-			return "", errors.New("invalid signature")
-		}
 
 		checkCommand := checkCommand{
 			command: command{Cmd: "check"},
@@ -200,15 +207,26 @@ func (tapProtocol *TapProtocol) Certs() error {
 
 			fmt.Println("FOUND CHECK DATA")
 
-			fmt.Println(data2.AuthSignature)
-
 			message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
 			message = append(message, data2.CardNonce[:]...)
-			message = append(message, tapProtocol.cardPublicKey[:]...)
+			message = append(message, tapProtocol.currentSlotPublicKey[:]...)
 
 			messageDigest := sha256.Sum256([]byte(message))
 
 			fmt.Println(messageDigest)
+
+			publicKey, err := btcec.ParsePubKey(tapProtocol.currentSlotPublicKey[:])
+			if err != nil {
+				return err
+			}
+
+			verified := signature.Verify(messageDigest[:], publicKey)
+
+			if !verified {
+				return errors.New("invalid signature")
+			}
+
+			tapProtocol.currentCardNonce = data2.CardNonce
 
 		}
 
@@ -275,21 +293,28 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
 // READ
 // read a SATSCARD’s current payment address
-func (tapProtocol *TapProtocol) Read(cvc string) (string, error) {
+func (tapProtocol *TapProtocol) Read() (string, error) {
+
+	tapProtocol.transport.Connect()
+	defer tapProtocol.transport.Disconnect()
+
+	return tapProtocol.read()
+
+}
+
+// READ
+// read a SATSCARD’s current payment address
+func (tapProtocol *TapProtocol) read() (string, error) {
 
 	fmt.Println("----------------------------")
 	fmt.Println("Read current payment address")
 	fmt.Println("----------------------------")
 
+	tapProtocol.status()
+
 	// READ
 
 	command := command{Cmd: "read"}
-
-	auth, err := tapProtocol.authenticate(cvc, command)
-
-	if err != nil {
-		return "", err
-	}
 
 	nonce, err := tapProtocol.createNonce()
 
@@ -299,7 +324,6 @@ func (tapProtocol *TapProtocol) Read(cvc string) (string, error) {
 
 	readCommand := readCommand{
 		command: command,
-		auth:    *auth,
 		Nonce:   nonce,
 	}
 
@@ -440,8 +464,6 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 	data := <-channel
 
-	fmt.Println("Switch on data", data)
-
 	switch data := data.(type) {
 	case statusData:
 
@@ -542,7 +564,11 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 			return "", errors.New("invalid signature")
 		}
 
-		// Convert to address
+		// Save the current slot public key
+
+		tapProtocol.currentSlotPublicKey = data.PublicKey
+
+		// Convert public key to address
 
 		hash160 := btcutil.Hash160(data.PublicKey[:])
 

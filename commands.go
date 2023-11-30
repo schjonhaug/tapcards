@@ -31,7 +31,6 @@ type newCommand struct {
 
 type readCommand struct {
 	command
-	auth
 	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 

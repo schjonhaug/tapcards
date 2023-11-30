@@ -25,42 +25,44 @@ func main() {
 	fmt.Println(tapProtocol.NumberOfSlots())
 
 	fmt.Println("Identity: " + tapProtocol.Identity())
+	/*
+		paymentAddress, err := tapProtocol.Read()
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println(paymentAddress)*/
 
 	// Certificates
 
-	err = tapProtocol.Certs()
+	err2 := tapProtocol.Certs()
 
-	if err != nil {
+	if err2 != nil {
 		fmt.Println("Certs error")
-		fmt.Println(err)
+		fmt.Println(err2)
 		return
 	}
 
-	/*paymentAddress, err := tapProtocol.Read(cvc)
+	/*
 
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+		wif, err := tapProtocol.Unseal(cvc)
 
-	fmt.Println(paymentAddress)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
-	wif, err := tapProtocol.Unseal(cvc)
+		fmt.Println("WIF encoded private key: ", wif)
 
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+		slot, err := tapProtocol.New(cvc)
 
-	fmt.Println("WIF encoded private key: ", wif)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
-	slot, err := tapProtocol.New(cvc)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println("Slot: ", slot)*/
+		fmt.Println("Slot: ", slot)*/
 
 }
