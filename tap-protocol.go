@@ -29,9 +29,9 @@ type TapProtocol struct {
 	transport        Transport
 }
 
-// Human friendly active slot number
+// Active slot number
 func (tapProtocol *TapProtocol) ActiveSlot() int {
-	return tapProtocol.activeSlot + 1
+	return tapProtocol.activeSlot
 }
 
 func (tapProtocol *TapProtocol) NumberOfSlots() int {
@@ -159,7 +159,7 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
 	if err != nil {
 		fmt.Println(err)
-		return -1, err
+		return 0, err
 	}
 
 	newCommand := newCommand{
@@ -179,10 +179,10 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 		return data, nil
 	case ErrorData:
 		fmt.Println("FOUND ERROR DATA")
-		return -1, errors.New(data.Error)
+		return 0, errors.New(data.Error)
 
 	default:
-		return -1, errors.New("undefined error")
+		return 0, errors.New("undefined error")
 
 	}
 
@@ -391,12 +391,6 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 		fmt.Printf("Card Nonce:        %x\n", data.CardNonce)
 
 		tapProtocol.currentCardNonce = data.CardNonce
-
-		// Increase active slot
-
-		if tapProtocol.activeSlot < tapProtocol.numberOfSlots {
-			tapProtocol.activeSlot++
-		}
 
 		// Calculate and return private key as wif
 
