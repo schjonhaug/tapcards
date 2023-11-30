@@ -162,6 +162,27 @@ func (tapProtocol *TapProtocol) Certs() error {
 
 		fmt.Println("FOUND CERTS DATA")
 
+		firstSignature := data.CertificateChain[0]
+
+		r := new(btcec.ModNScalar)
+		r.SetByteSlice(firstSignature[0:32])
+
+		s := new(btcec.ModNScalar)
+		s.SetByteSlice(firstSignature[32:])
+
+		signature := ecdsa.NewSignature(r, s)
+
+		/*publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
+		if err != nil {
+			return "", err
+		}*/
+
+		verified := signature.Verify(messageDigest[:], publicKey)
+
+		if !verified {
+			return "", errors.New("invalid signature")
+		}
+
 		checkCommand := checkCommand{
 			command: command{Cmd: "check"},
 			Nonce:   nonce,
@@ -422,7 +443,7 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 	fmt.Println("Switch on data", data)
 
 	switch data := data.(type) {
-	case StatusData:
+	case statusData:
 
 		fmt.Println("##########")
 		fmt.Println("# STATUS #")

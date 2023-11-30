@@ -31,7 +31,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	switch command.(type) {
 	case statusCommand:
 
-		var v StatusData
+		var v statusData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 			panic(err)
