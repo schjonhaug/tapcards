@@ -110,7 +110,6 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 	data, err := tapProtocol.sendReceive(unsealCommand)
 
 	if err != nil {
-
 		return "", err
 	}
 
@@ -129,19 +128,68 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 
 }
 
-func (tapProtocol *TapProtocol) Certificates() {
+func (tapProtocol *TapProtocol) Certs() error {
 
 	//TODO
 
 	fmt.Println("------------")
-	fmt.Println("Certificates")
+	fmt.Println("Certs")
 	fmt.Println("------------")
 
-	certificatesCommand := certsCommand{
+	certsCommand := certsCommand{
 		command{Cmd: "certs"},
 	}
 
-	tapProtocol.sendReceive(certificatesCommand)
+	fmt.Println("certsCommand")
+
+	data, err := tapProtocol.sendReceive(certsCommand)
+	fmt.Println("return from sendReceive")
+
+	if err != nil {
+		return err
+	}
+
+	nonce, err := tapProtocol.createNonce()
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Created nonce")
+
+	switch data := data.(type) {
+	case [][65]byte:
+
+		fmt.Println("FOUND CERTS DATA")
+
+		checkCommand := checkCommand{
+			command: command{Cmd: "check"},
+			Nonce:   nonce,
+		}
+
+		data2, err := tapProtocol.sendReceive(checkCommand)
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(data2)
+
+		return nil
+	case ErrorData:
+		fmt.Println("FOUND ERROR DATA")
+		return errors.New(data.Error)
+
+	default:
+		return errors.New("undefined error")
+
+	}
+
+	//CertificateChain [][65]byte
+
+	//factoryRootPublicKey = "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1"
+
+	//return nil
 
 }
 
@@ -355,6 +403,8 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 	data := <-channel
 
+	fmt.Println("Switch on data", data)
+
 	switch data := data.(type) {
 	case StatusData:
 
@@ -480,11 +530,23 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 	case CertificatesData:
 
-		fmt.Println("################")
-		fmt.Println("# CERTIFICATES #")
-		fmt.Println("################")
+		fmt.Println("#########")
+		fmt.Println("# CERTS #")
+		fmt.Println("#########")
 
 		fmt.Printf("Certificate chain: %x\n", data.CertificateChain[:])
+
+		return data.CertificateChain, nil
+	case checkData:
+
+		fmt.Println("#########")
+		fmt.Println("# CHECK #")
+		fmt.Println("#########")
+
+		fmt.Printf("Auth signature: %x\n", data.AuthSignature[:])
+		fmt.Printf("Card Nonce: %x\n", data.CardNonce[:])
+
+		return nil, nil
 
 	case ErrorData:
 

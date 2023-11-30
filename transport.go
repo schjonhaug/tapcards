@@ -26,6 +26,8 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
+	fmt.Println("Switch on command", command)
+
 	switch command.(type) {
 	case statusCommand:
 
@@ -74,6 +76,24 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	case certsCommand:
 
 		var v CertificatesData
+
+		if err := decMode.Unmarshal(buf, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(buf, &e); err != nil {
+				fmt.Println(err)
+
+			}
+
+			channel <- e
+
+		}
+
+		channel <- v
+	case checkCommand:
+
+		var v checkData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 

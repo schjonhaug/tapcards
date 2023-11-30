@@ -26,6 +26,16 @@ func main() {
 
 	fmt.Println("Identity: " + tapProtocol.Identity())
 
+	// Certificates
+
+	err = tapProtocol.Certs()
+
+	if err != nil {
+		fmt.Println("Certs error")
+		fmt.Println(err)
+		return
+	}
+
 	paymentAddress, err := tapProtocol.Read(cvc)
 
 	if err != nil {
@@ -43,10 +53,6 @@ func main() {
 	}
 
 	fmt.Println("WIF encoded private key: ", wif)
-
-	// Certificates
-
-	// TODO tapProtocol.Certificates()
 
 	slot, err := tapProtocol.New(cvc)
 

@@ -31,6 +31,11 @@ type NewData struct {
 	Slot int
 }
 
+type checkData struct {
+	CardResponse
+	AuthSignature [64]byte `cbor:"auth_sig"` //  signature using card_pubkey
+}
+
 type readData struct {
 	CardResponse
 	Signature [64]byte `cbor:"sig"`    //  signature over a bunch of fields using private key of slot

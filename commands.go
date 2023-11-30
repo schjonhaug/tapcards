@@ -38,3 +38,8 @@ type readCommand struct {
 type certsCommand struct {
 	command
 }
+
+type checkCommand struct {
+	command
+	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
+}
