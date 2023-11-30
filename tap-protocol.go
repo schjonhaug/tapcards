@@ -178,7 +178,12 @@ func (tapProtocol *TapProtocol) certs() error {
 	switch data := data.(type) {
 	case certificatesData:
 
-		fmt.Println("FOUND CERTS DATA")
+		fmt.Println()
+		fmt.Println("#########")
+		fmt.Println("# CERTS #")
+		fmt.Println("#########")
+
+		fmt.Printf("Certificate chain: %x\n", data.CertificateChain[:])
 
 		firstSignature := data.CertificateChain[0]
 
@@ -205,7 +210,12 @@ func (tapProtocol *TapProtocol) certs() error {
 
 		case checkData:
 
-			fmt.Println("FOUND CHECK DATA")
+			fmt.Println("#########")
+			fmt.Println("# CHECK #")
+			fmt.Println("#########")
+
+			fmt.Printf("Auth signature: %x\n", data2.AuthSignature[:])
+			fmt.Printf("Card Nonce: %x\n", data2.CardNonce[:])
 
 			message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
 			message = append(message, data2.CardNonce[:]...)
@@ -250,11 +260,18 @@ func (tapProtocol *TapProtocol) certs() error {
 
 func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
+	tapProtocol.transport.Connect()
+	defer tapProtocol.transport.Disconnect()
+
+	return tapProtocol.new(cvc)
+
+}
+
+func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
+
 	fmt.Println("------------")
 	fmt.Println("New")
 	fmt.Println("------------")
-
-	// NEW
 
 	command := command{Cmd: "new"}
 
@@ -278,8 +295,18 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 	}
 
 	switch data := data.(type) {
-	case int:
-		return data, nil
+	case NewData:
+
+		fmt.Println("#######")
+		fmt.Println("# NEW #")
+		fmt.Println("#######")
+
+		fmt.Println("Slot:             ", data.Slot)
+
+		tapProtocol.currentCardNonce = data.CardNonce
+		tapProtocol.activeSlot = data.Slot
+
+		return data.Slot, nil
 	case ErrorData:
 		fmt.Println("FOUND ERROR DATA")
 		return 0, errors.New(data.Error)
@@ -334,8 +361,69 @@ func (tapProtocol *TapProtocol) read() (string, error) {
 	}
 
 	switch data := data.(type) {
-	case string:
-		return data, nil
+	case readData:
+
+		fmt.Println("########")
+		fmt.Println("# READ #")
+		fmt.Println("########")
+
+		fmt.Printf("Signature: %x\n", data.Signature)
+		fmt.Printf("Public Key: %x\n", data.PublicKey)
+
+		// Verify public key with signature
+
+		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
+		message = append(message, tapProtocol.nonce[:]...)
+		message = append(message, []byte{byte(tapProtocol.activeSlot)}...)
+
+		messageDigest := sha256.Sum256([]byte(message))
+
+		r := new(btcec.ModNScalar)
+		r.SetByteSlice(data.Signature[0:32])
+
+		s := new(btcec.ModNScalar)
+		s.SetByteSlice(data.Signature[32:])
+
+		signature := ecdsa.NewSignature(r, s)
+
+		publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
+		if err != nil {
+			return "", err
+		}
+
+		verified := signature.Verify(messageDigest[:], publicKey)
+
+		if !verified {
+			return "", errors.New("invalid signature")
+		}
+
+		// Save the current slot public key
+
+		tapProtocol.currentSlotPublicKey = data.PublicKey
+
+		// Convert public key to address
+
+		hash160 := btcutil.Hash160(data.PublicKey[:])
+
+		convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
+		if err != nil {
+			return "", err
+		}
+
+		zero := make([]byte, 1)
+
+		encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
+		if err != nil {
+			return "", err
+		}
+
+		// Show the encoded data.
+		fmt.Println("Encoded Data:", encoded)
+
+		tapProtocol.currentCardNonce = data.CardNonce
+
+		return encoded, nil
+
 	case ErrorData:
 		return "", errors.New(data.Error)
 
@@ -517,98 +605,15 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 	case NewData:
 
-		fmt.Println("#######")
-		fmt.Println("# NEW #")
-		fmt.Println("#######")
-
-		fmt.Println("Slot:             ", data.Slot)
-
-		tapProtocol.currentCardNonce = data.CardNonce
-		tapProtocol.activeSlot = data.Slot
-
-		return data.Slot, nil
+		return data, nil
 
 	case readData:
 
-		fmt.Println("########")
-		fmt.Println("# READ #")
-		fmt.Println("########")
-
-		fmt.Printf("Signature: %x\n", data.Signature)
-		fmt.Printf("Public Key: %x\n", data.PublicKey)
-
-		// Verify public key with signature
-
-		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
-		message = append(message, tapProtocol.nonce[:]...)
-		message = append(message, []byte{byte(tapProtocol.activeSlot)}...)
-
-		messageDigest := sha256.Sum256([]byte(message))
-
-		r := new(btcec.ModNScalar)
-		r.SetByteSlice(data.Signature[0:32])
-
-		s := new(btcec.ModNScalar)
-		s.SetByteSlice(data.Signature[32:])
-
-		signature := ecdsa.NewSignature(r, s)
-
-		publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
-		if err != nil {
-			return "", err
-		}
-
-		verified := signature.Verify(messageDigest[:], publicKey)
-
-		if !verified {
-			return "", errors.New("invalid signature")
-		}
-
-		// Save the current slot public key
-
-		tapProtocol.currentSlotPublicKey = data.PublicKey
-
-		// Convert public key to address
-
-		hash160 := btcutil.Hash160(data.PublicKey[:])
-
-		convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
-		if err != nil {
-			return "", err
-		}
-
-		zero := make([]byte, 1)
-
-		encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
-		if err != nil {
-			return "", err
-		}
-
-		// Show the encoded data.
-		fmt.Println("Encoded Data:", encoded)
-
-		tapProtocol.currentCardNonce = data.CardNonce
-
-		return encoded, nil
+		return data, nil
 
 	case certificatesData:
-
-		fmt.Println("#########")
-		fmt.Println("# CERTS #")
-		fmt.Println("#########")
-
-		fmt.Printf("Certificate chain: %x\n", data.CertificateChain[:])
-
 		return data, nil
 	case checkData:
-
-		fmt.Println("#########")
-		fmt.Println("# CHECK #")
-		fmt.Println("#########")
-
-		fmt.Printf("Auth signature: %x\n", data.AuthSignature[:])
-		fmt.Printf("Card Nonce: %x\n", data.CardNonce[:])
-
 		return data, nil
 
 	case ErrorData:

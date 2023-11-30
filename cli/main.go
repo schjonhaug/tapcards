@@ -25,15 +25,15 @@ func main() {
 	fmt.Println(tapProtocol.NumberOfSlots())
 
 	fmt.Println("Identity: " + tapProtocol.Identity())
-	/*
-		paymentAddress, err := tapProtocol.Read()
 
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+	paymentAddress, err := tapProtocol.Read()
 
-		fmt.Println(paymentAddress)*/
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(paymentAddress)
 
 	// Certificates
 
