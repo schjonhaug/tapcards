@@ -158,7 +158,7 @@ func (tapProtocol *TapProtocol) Certs() error {
 	fmt.Println("Created nonce")
 
 	switch data := data.(type) {
-	case [][65]byte:
+	case certificatesData:
 
 		fmt.Println("FOUND CERTS DATA")
 
@@ -173,7 +173,23 @@ func (tapProtocol *TapProtocol) Certs() error {
 			return err
 		}
 
-		fmt.Println(data2)
+		switch data2 := data2.(type) {
+
+		case checkData:
+
+			fmt.Println("FOUND CHECK DATA")
+
+			fmt.Println(data2.AuthSignature)
+
+			message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
+			message = append(message, data2.CardNonce[:]...)
+			message = append(message, tapProtocol.cardPublicKey[:]...)
+
+			messageDigest := sha256.Sum256([]byte(message))
+
+			fmt.Println(messageDigest)
+
+		}
 
 		return nil
 	case ErrorData:
@@ -528,7 +544,7 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 		return encoded, nil
 
-	case CertificatesData:
+	case certificatesData:
 
 		fmt.Println("#########")
 		fmt.Println("# CERTS #")
@@ -536,7 +552,7 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 		fmt.Printf("Certificate chain: %x\n", data.CertificateChain[:])
 
-		return data.CertificateChain, nil
+		return data, nil
 	case checkData:
 
 		fmt.Println("#########")
@@ -546,7 +562,7 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 		fmt.Printf("Auth signature: %x\n", data.AuthSignature[:])
 		fmt.Printf("Card Nonce: %x\n", data.CardNonce[:])
 
-		return nil, nil
+		return data, nil
 
 	case ErrorData:
 

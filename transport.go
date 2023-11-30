@@ -75,7 +75,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 		channel <- v
 	case certsCommand:
 
-		var v CertificatesData
+		var v certificatesData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 

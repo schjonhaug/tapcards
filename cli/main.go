@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	cvc := "123456"
+	//cvc := "123456"
 
 	var tapProtocol tapprotocol.TapProtocol
 	// STATUS
@@ -36,7 +36,7 @@ func main() {
 		return
 	}
 
-	paymentAddress, err := tapProtocol.Read(cvc)
+	/*paymentAddress, err := tapProtocol.Read(cvc)
 
 	if err != nil {
 		fmt.Println(err)
@@ -61,6 +61,6 @@ func main() {
 		return
 	}
 
-	fmt.Println("Slot: ", slot)
+	fmt.Println("Slot: ", slot)*/
 
 }

@@ -43,7 +43,7 @@ type readData struct {
 
 }
 
-type CertificatesData struct {
+type certificatesData struct {
 	CertificateChain [][65]byte `cbor:"cert_chain"`
 }
 
