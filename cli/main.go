@@ -2,50 +2,47 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	tapprotocol "github.com/schjonhaug/coinkite-tap-proto-go"
 )
 
 func main() {
 
-	//cvc := "123456"
-
 	var tapProtocol tapprotocol.TapProtocol
-	// STATUS
+	cvc := "123456"
 
-	err := tapProtocol.Status()
+	argsWithoutProg := os.Args[1:]
 
-	if err != nil {
-		fmt.Println("YOU NEED TO CONNECT YOUR TAP CARD")
-		fmt.Println(err)
-		return
-	}
+	switch argsWithoutProg[0] {
 
-	fmt.Println("Active slot", tapProtocol.ActiveSlot())
-	fmt.Println(tapProtocol.NumberOfSlots())
+	case "status":
 
-	fmt.Println("Identity: " + tapProtocol.Identity())
+		err := tapProtocol.Status()
 
-	paymentAddress, err := tapProtocol.Read()
+		if err != nil {
 
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+			fmt.Println(err)
+			return
+		}
 
-	fmt.Println(paymentAddress)
+		fmt.Println("Active slot", tapProtocol.ActiveSlot())
+		fmt.Println(tapProtocol.NumberOfSlots())
 
-	// Certificates
+		fmt.Println("Identity: " + tapProtocol.Identity())
 
-	err2 := tapProtocol.Certs()
+	case "read":
 
-	if err2 != nil {
-		fmt.Println("Certs error")
-		fmt.Println(err2)
-		return
-	}
+		paymentAddress, err := tapProtocol.Read()
 
-	/*
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println(paymentAddress)
+
+	case "unseal":
 
 		wif, err := tapProtocol.Unseal(cvc)
 
@@ -56,6 +53,18 @@ func main() {
 
 		fmt.Println("WIF encoded private key: ", wif)
 
+	case "certs":
+
+		err := tapProtocol.Certs()
+
+		if err != nil {
+			fmt.Println("Certs error")
+			fmt.Println(err)
+			return
+		}
+
+	case "new":
+
 		slot, err := tapProtocol.New(cvc)
 
 		if err != nil {
@@ -63,6 +72,11 @@ func main() {
 			return
 		}
 
-		fmt.Println("Slot: ", slot)*/
+		fmt.Println("Slot: ", slot)
+
+	default:
+		fmt.Println(fmt.Errorf("unknown command"))
+
+	}
 
 }

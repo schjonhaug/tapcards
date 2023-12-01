@@ -91,13 +91,52 @@ func (tapProtocol *TapProtocol) status() error {
 
 	statusCommand := statusCommand{command{Cmd: "status"}}
 
-	_, error := tapProtocol.sendReceive(statusCommand)
+	data, error := tapProtocol.sendReceive(statusCommand)
+
+	switch data := data.(type) {
+	case statusData:
+
+		fmt.Println("##########")
+		fmt.Println("# STATUS #")
+		fmt.Println("##########")
+
+		fmt.Println("Proto:     ", data.Proto)
+		fmt.Println("Birth:     ", data.Birth)
+		fmt.Println("Slots:     ", data.Slots)
+		fmt.Println("Addr:      ", data.Address)
+		fmt.Println("Ver:       ", data.Version)
+		fmt.Printf("Pubkey:     %x\n", data.PublicKey)
+		fmt.Printf("Card Nonce: %x\n", data.CardNonce)
+
+		tapProtocol.cardPublicKey = data.PublicKey
+		tapProtocol.currentCardNonce = data.CardNonce
+		tapProtocol.activeSlot = data.Slots[0]
+		tapProtocol.numberOfSlots = data.Slots[1]
+
+	case ErrorData:
+		fmt.Println("FOUND ERROR DATA")
+		return errors.New(data.Error)
+
+	default:
+		return errors.New("undefined error")
+
+	}
 
 	return error
 
 }
 
 func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
+
+	tapProtocol.transport.Connect()
+	defer tapProtocol.transport.Disconnect()
+
+	return tapProtocol.unseal(cvc)
+
+}
+func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
+
+	tapProtocol.status()
 
 	fmt.Println("----------------------------")
 	fmt.Println("Unseal")
@@ -125,9 +164,35 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 	}
 
 	switch data := data.(type) {
-	case string:
+	case UnsealData:
 
-		return data, nil
+		fmt.Println("##########")
+		fmt.Println("# UNSEAL #")
+		fmt.Println("##########")
+
+		fmt.Println("Slot:             ", data.Slot)
+		fmt.Printf("Private Key:       %x\n", data.PrivateKey)
+		fmt.Printf("Public Key:        %x\n", data.PublicKey)
+		fmt.Printf("Master Public Key: %x\n", data.MasterPublicKey)
+		fmt.Printf("Chain Code:        %x\n", data.ChainCode)
+		fmt.Printf("Card Nonce:        %x\n", data.CardNonce)
+
+		tapProtocol.currentCardNonce = data.CardNonce
+
+		// Calculate and return private key as wif
+
+		unencryptedPrivateKeyBytes := xor(data.PrivateKey[:], tapProtocol.sessionKey[:])
+
+		privateKey, _ := btcec.PrivKeyFromBytes(unencryptedPrivateKeyBytes)
+
+		wif, err := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
+
+		if err != nil {
+			return "", err
+		}
+
+		return wif.String(), nil
+
 	case ErrorData:
 		fmt.Println("FOUND ERROR DATA")
 		return "", errors.New(data.Error)
@@ -555,53 +620,11 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 	switch data := data.(type) {
 	case statusData:
 
-		fmt.Println("##########")
-		fmt.Println("# STATUS #")
-		fmt.Println("##########")
-
-		fmt.Println("Proto:     ", data.Proto)
-		fmt.Println("Birth:     ", data.Birth)
-		fmt.Println("Slots:     ", data.Slots)
-		fmt.Println("Addr:      ", data.Address)
-		fmt.Println("Ver:       ", data.Version)
-		fmt.Printf("Pubkey:     %x\n", data.PublicKey)
-		fmt.Printf("Card Nonce: %x\n", data.CardNonce)
-
-		tapProtocol.cardPublicKey = data.PublicKey
-		tapProtocol.currentCardNonce = data.CardNonce
-		tapProtocol.activeSlot = data.Slots[0]
-		tapProtocol.numberOfSlots = data.Slots[1]
-
-		return nil, nil
+		return data, nil
 
 	case UnsealData:
 
-		fmt.Println("##########")
-		fmt.Println("# UNSEAL #")
-		fmt.Println("##########")
-
-		fmt.Println("Slot:             ", data.Slot)
-		fmt.Printf("Private Key:       %x\n", data.PrivateKey)
-		fmt.Printf("Public Key:        %x\n", data.PublicKey)
-		fmt.Printf("Master Public Key: %x\n", data.MasterPublicKey)
-		fmt.Printf("Chain Code:        %x\n", data.ChainCode)
-		fmt.Printf("Card Nonce:        %x\n", data.CardNonce)
-
-		tapProtocol.currentCardNonce = data.CardNonce
-
-		// Calculate and return private key as wif
-
-		unencryptedPrivateKeyBytes := xor(data.PrivateKey[:], tapProtocol.sessionKey[:])
-
-		privateKey, _ := btcec.PrivKeyFromBytes(unencryptedPrivateKeyBytes)
-
-		wif, err := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
-
-		if err != nil {
-			return "", err
-		}
-
-		return wif.String(), nil
+		return data, nil
 
 	case NewData:
 
