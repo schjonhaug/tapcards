@@ -334,6 +334,8 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
 func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 
+	tapProtocol.status()
+
 	fmt.Println("------------")
 	fmt.Println("New")
 	fmt.Println("------------")
@@ -617,44 +619,6 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 	data := <-channel
 
-	switch data := data.(type) {
-	case statusData:
-
-		return data, nil
-
-	case UnsealData:
-
-		return data, nil
-
-	case NewData:
-
-		return data, nil
-
-	case readData:
-
-		return data, nil
-
-	case certificatesData:
-		return data, nil
-	case checkData:
-		return data, nil
-
-	case ErrorData:
-
-		fmt.Println("#########")
-		fmt.Println("# ERROR #")
-		fmt.Println("#########")
-
-		fmt.Println("Error: ", data.Error)
-		fmt.Println("Code:  ", data.Code)
-
-		return data, nil
-
-	default:
-
-		fmt.Println("UNKNOWN TYPE", data)
-	}
-
-	return nil, nil
+	return data, nil
 
 }
