@@ -3,12 +3,9 @@ package tapprotocol
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"math/big"
 
-	"github.com/btcsuite/btcd/btcec/v2"
-	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
@@ -32,125 +29,6 @@ func (tapProtocol *TapProtocol) ActiveSlot() int {
 
 func (tapProtocol *TapProtocol) NumberOfSlots() int {
 	return tapProtocol.numberOfSlots
-}
-
-func (tapProtocol *TapProtocol) Certs() error {
-
-	tapProtocol.transport.Connect()
-	defer tapProtocol.transport.Disconnect()
-
-	return tapProtocol.certs()
-
-}
-
-func (tapProtocol *TapProtocol) certs() error {
-
-	tapProtocol.status()
-	tapProtocol.read()
-
-	//TODO
-
-	fmt.Println("------------")
-	fmt.Println("Certs")
-	fmt.Println("------------")
-
-	certsCommand := certsCommand{
-		command{Cmd: "certs"},
-	}
-
-	data, err := tapProtocol.sendReceive(certsCommand)
-
-	if err != nil {
-		return err
-	}
-
-	nonce, err := tapProtocol.createNonce()
-
-	if err != nil {
-		return err
-	}
-
-	switch data := data.(type) {
-	case certificatesData:
-
-		fmt.Println()
-		fmt.Println("#########")
-		fmt.Println("# CERTS #")
-		fmt.Println("#########")
-
-		fmt.Printf("Certificate chain: %x\n", data.CertificateChain[:])
-
-		firstSignature := data.CertificateChain[0]
-
-		r := new(btcec.ModNScalar)
-		r.SetByteSlice(firstSignature[0:32])
-
-		s := new(btcec.ModNScalar)
-		s.SetByteSlice(firstSignature[32:])
-
-		signature := ecdsa.NewSignature(r, s)
-
-		checkCommand := checkCommand{
-			command: command{Cmd: "check"},
-			Nonce:   nonce,
-		}
-
-		data2, err := tapProtocol.sendReceive(checkCommand)
-
-		if err != nil {
-			return err
-		}
-
-		switch data2 := data2.(type) {
-
-		case checkData:
-
-			fmt.Println("#########")
-			fmt.Println("# CHECK #")
-			fmt.Println("#########")
-
-			fmt.Printf("Auth signature: %x\n", data2.AuthSignature[:])
-			fmt.Printf("Card Nonce: %x\n", data2.CardNonce[:])
-
-			message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
-			message = append(message, data2.CardNonce[:]...)
-			message = append(message, tapProtocol.currentSlotPublicKey[:]...)
-
-			messageDigest := sha256.Sum256([]byte(message))
-
-			fmt.Println(messageDigest)
-
-			publicKey, err := btcec.ParsePubKey(tapProtocol.currentSlotPublicKey[:])
-			if err != nil {
-				return err
-			}
-
-			verified := signature.Verify(messageDigest[:], publicKey)
-
-			if !verified {
-				return errors.New("invalid signature")
-			}
-
-			tapProtocol.currentCardNonce = data2.CardNonce
-
-		}
-
-		return nil
-	case ErrorData:
-		fmt.Println("FOUND ERROR DATA")
-		return errors.New(data.Error)
-
-	default:
-		return errors.New("undefined error")
-
-	}
-
-	//CertificateChain [][65]byte
-
-	//factoryRootPublicKey = "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1"
-
-	//return nil
-
 }
 
 func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth, error) {
