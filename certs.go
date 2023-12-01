@@ -39,12 +39,6 @@ func (tapProtocol *TapProtocol) certs() error {
 		return err
 	}
 
-	nonce, err := tapProtocol.createNonce()
-
-	if err != nil {
-		return err
-	}
-
 	switch data := data.(type) {
 	case certificatesData:
 
@@ -65,52 +59,31 @@ func (tapProtocol *TapProtocol) certs() error {
 
 		signature := ecdsa.NewSignature(r, s)
 
-		checkCommand := checkCommand{
-			command: command{Cmd: "check"},
-			Nonce:   nonce,
-		}
+		checkData, err := tapProtocol.check()
 
-		data2, err := tapProtocol.sendReceive(checkCommand)
+		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
+		message = append(message, checkData.CardNonce[:]...)
+		message = append(message, tapProtocol.currentSlotPublicKey[:]...)
 
+		messageDigest := sha256.Sum256([]byte(message))
+
+		fmt.Println(messageDigest)
+
+		publicKey, err := btcec.ParsePubKey(tapProtocol.currentSlotPublicKey[:])
 		if err != nil {
 			return err
 		}
 
-		switch data2 := data2.(type) {
+		verified := signature.Verify(messageDigest[:], publicKey)
 
-		case checkData:
-
-			fmt.Println("#########")
-			fmt.Println("# CHECK #")
-			fmt.Println("#########")
-
-			fmt.Printf("Auth signature: %x\n", data2.AuthSignature[:])
-			fmt.Printf("Card Nonce: %x\n", data2.CardNonce[:])
-
-			message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
-			message = append(message, data2.CardNonce[:]...)
-			message = append(message, tapProtocol.currentSlotPublicKey[:]...)
-
-			messageDigest := sha256.Sum256([]byte(message))
-
-			fmt.Println(messageDigest)
-
-			publicKey, err := btcec.ParsePubKey(tapProtocol.currentSlotPublicKey[:])
-			if err != nil {
-				return err
-			}
-
-			verified := signature.Verify(messageDigest[:], publicKey)
-
-			if !verified {
-				return errors.New("invalid signature")
-			}
-
-			tapProtocol.currentCardNonce = data2.CardNonce
-
+		if !verified {
+			return errors.New("invalid signature")
 		}
 
+		tapProtocol.currentCardNonce = checkData.CardNonce
+
 		return nil
+
 	case ErrorData:
 		fmt.Println("FOUND ERROR DATA")
 		return errors.New(data.Error)
