@@ -18,7 +18,7 @@ func main() {
 
 	case "status":
 
-		err := tapProtocol.Status()
+		identity, err := tapProtocol.Status()
 
 		if err != nil {
 
@@ -26,10 +26,10 @@ func main() {
 			return
 		}
 
-		fmt.Println("Active slot", tapProtocol.ActiveSlot())
-		fmt.Println(tapProtocol.NumberOfSlots())
+		//fmt.Println("Active slot", tapProtocol.ActiveSlot())
+		//fmt.Println(tapProtocol.NumberOfSlots())
 
-		fmt.Println("Identity: " + tapProtocol.Identity())
+		fmt.Println("Identity: " + identity)
 
 	case "read":
 
