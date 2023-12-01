@@ -18,19 +18,51 @@ func (tapProtocol *TapProtocol) Read() (string, error) {
 	tapProtocol.transport.Connect()
 	defer tapProtocol.transport.Disconnect()
 
-	return tapProtocol.read()
+	readData, err := tapProtocol.read()
+	if err != nil {
+		return "", err
+	}
+
+	// Save the current slot public key
+
+	//tapProtocol.currentSlotPublicKey = data.PublicKey
+
+	// Convert public key to address
+
+	hash160 := btcutil.Hash160(readData.PublicKey[:])
+
+	convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
+	if err != nil {
+		return "", err
+	}
+
+	zero := make([]byte, 1)
+
+	encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
+	if err != nil {
+		return "", err
+	}
+
+	// Show the encoded readData.
+	fmt.Println("Encoded Data:", encoded)
+
+	return encoded, nil
 
 }
 
 // READ
 // read a SATSCARD’s current payment address
-func (tapProtocol *TapProtocol) read() (string, error) {
+func (tapProtocol *TapProtocol) read() (*readData, error) {
 
 	fmt.Println("----------------------------")
 	fmt.Println("Read current payment address")
 	fmt.Println("----------------------------")
 
-	tapProtocol.status()
+	statusData, err := tapProtocol.status()
+
+	if err != nil {
+		return nil, err
+	}
 
 	// READ
 
@@ -39,7 +71,7 @@ func (tapProtocol *TapProtocol) read() (string, error) {
 	nonce, err := tapProtocol.createNonce()
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	readCommand := readCommand{
@@ -50,7 +82,7 @@ func (tapProtocol *TapProtocol) read() (string, error) {
 	data, err := tapProtocol.sendReceive(readCommand)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	switch data := data.(type) {
@@ -65,7 +97,7 @@ func (tapProtocol *TapProtocol) read() (string, error) {
 
 		// Verify public key with signature
 
-		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
+		message := append([]byte("OPENDIME"), statusData.CardNonce[:]...)
 		message = append(message, tapProtocol.nonce[:]...)
 		message = append(message, []byte{byte(tapProtocol.activeSlot)}...)
 
@@ -81,47 +113,22 @@ func (tapProtocol *TapProtocol) read() (string, error) {
 
 		publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		verified := signature.Verify(messageDigest[:], publicKey)
 
 		if !verified {
-			return "", errors.New("invalid signature")
+			return nil, errors.New("invalid signature")
 		}
 
-		// Save the current slot public key
-
-		tapProtocol.currentSlotPublicKey = data.PublicKey
-
-		// Convert public key to address
-
-		hash160 := btcutil.Hash160(data.PublicKey[:])
-
-		convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
-		if err != nil {
-			return "", err
-		}
-
-		zero := make([]byte, 1)
-
-		encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
-		if err != nil {
-			return "", err
-		}
-
-		// Show the encoded data.
-		fmt.Println("Encoded Data:", encoded)
-
-		tapProtocol.currentCardNonce = data.CardNonce
-
-		return encoded, nil
+		return &data, nil
 
 	case ErrorData:
-		return "", errors.New(data.Error)
+		return nil, errors.New(data.Error)
 
 	default:
-		return "", errors.New("undefined error")
+		return nil, errors.New("undefined error")
 
 	}
 

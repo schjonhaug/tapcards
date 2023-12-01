@@ -61,6 +61,10 @@ func (tapProtocol *TapProtocol) certs() error {
 
 		checkData, err := tapProtocol.check()
 
+		if err != nil {
+			return err
+		}
+
 		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
 		message = append(message, checkData.CardNonce[:]...)
 		message = append(message, tapProtocol.currentSlotPublicKey[:]...)
@@ -70,6 +74,7 @@ func (tapProtocol *TapProtocol) certs() error {
 		fmt.Println(messageDigest)
 
 		publicKey, err := btcec.ParsePubKey(tapProtocol.currentSlotPublicKey[:])
+
 		if err != nil {
 			return err
 		}
