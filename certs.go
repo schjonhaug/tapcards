@@ -71,8 +71,6 @@ func (tapProtocol *TapProtocol) certs() error {
 
 		messageDigest := sha256.Sum256([]byte(message))
 
-		fmt.Println(messageDigest)
-
 		publicKey, err := btcec.ParsePubKey(tapProtocol.currentSlotPublicKey[:])
 
 		if err != nil {

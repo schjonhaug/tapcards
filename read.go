@@ -23,10 +23,6 @@ func (tapProtocol *TapProtocol) Read() (string, error) {
 		return "", err
 	}
 
-	// Save the current slot public key
-
-	//tapProtocol.currentSlotPublicKey = data.PublicKey
-
 	// Convert public key to address
 
 	hash160 := btcutil.Hash160(readData.PublicKey[:])
@@ -98,7 +94,7 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 		// Verify public key with signature
 
 		message := append([]byte("OPENDIME"), statusData.CardNonce[:]...)
-		message = append(message, tapProtocol.nonce[:]...)
+		message = append(message, tapProtocol.appNonce[:]...)
 		message = append(message, []byte{byte(tapProtocol.activeSlot)}...)
 
 		messageDigest := sha256.Sum256([]byte(message))
@@ -121,6 +117,9 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 		if !verified {
 			return nil, errors.New("invalid signature")
 		}
+
+		// Save the current slot public key
+		tapProtocol.currentSlotPublicKey = data.PublicKey
 
 		return &data, nil
 

@@ -12,7 +12,7 @@ import (
 // TAP PROTOCOL
 
 type TapProtocol struct {
-	nonce                []byte
+	appNonce             []byte
 	currentCardNonce     [16]byte
 	cardPublicKey        [33]byte
 	sessionKey           [32]byte
@@ -135,7 +135,7 @@ func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
 	}
 	fmt.Printf("\nNONCE: %x\n", nonce)
 
-	tapProtocol.nonce = nonce
+	tapProtocol.appNonce = nonce
 
 	return nonce, nil
 
