@@ -1,12 +1,15 @@
 package tapprotocol
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 func (tapProtocol *TapProtocol) Certs() error {
@@ -70,10 +73,6 @@ func (tapProtocol *TapProtocol) certs() error {
 
 		messageDigest := sha256.Sum256([]byte(message))
 
-		if err != nil {
-			return err
-		}
-
 		r := new(btcec.ModNScalar)
 		r.SetByteSlice(checkData.AuthSignature[0:32])
 
@@ -88,29 +87,31 @@ func (tapProtocol *TapProtocol) certs() error {
 
 		if !verified {
 			return errors.New("invalid signature certs")
-		} else {
-			fmt.Println("Signature verified")
 		}
 
 		if err != nil {
 			return err
 		}
-		/*
-			for i := 0; i < len(data.CertificateChain); i++ {
 
-				fmt.Println(i)
-				fmt.Println("Certificate chain: ", data.CertificateChain[i])
+		for i := 0; i < len(data.CertificateChain); i++ {
 
-				x := sha256.Sum256(append(publicKey.SerializeUncompressed(), data.CertificateChain[i][:]...))
+			fmt.Println(i)
+			fmt.Println("Certificate chain: ", data.CertificateChain[i])
 
-				publicKey, err := btcec.ParsePubKey(x[:])
+			publicKey, err = tapProtocol.signatureToPublicKey(data.CertificateChain[i], publicKey)
 
-				if err != nil {
-					return err
-				}
-
+			if err != nil {
+				return err
 			}
-		*/
+
+		}
+
+		factoryRootPublicKey := []byte("03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1")
+
+		if !bytes.Equal(publicKey.SerializeCompressed(), factoryRootPublicKey) {
+			return errors.New("invalid factory root public key")
+		}
+
 		tapProtocol.currentCardNonce = checkData.CardNonce
 
 		return nil
@@ -124,6 +125,122 @@ func (tapProtocol *TapProtocol) certs() error {
 
 	}
 
-	//factoryRootPublicKey = "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1"
+	//
+
+}
+
+func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
+	if len(signature) == 0 {
+		return 0, fmt.Errorf("empty signature")
+	}
+
+	firstByte := signature[0]
+
+	fmt.Println("First byte:", firstByte)
+
+	/*
+
+			int header_num = header & 0xff;
+		    if (header_num >= 39) {
+		      header_num -= 12;
+		    } else if (header_num >= 35) {
+		      header_num -= 8;
+		    } else if (header_num >= 31) {
+		      header_num -= 4;
+		    }
+		    int rec_id = header_num - 27;
+		    return rec_id;
+
+	*/
+
+	switch {
+	case firstByte >= 39:
+		firstByte -= 12
+
+	case firstByte >= 35:
+		firstByte -= 8
+
+	case firstByte >= 31:
+		firstByte -= 4
+	}
+
+	firstByte -= 27
+
+	fmt.Println("First byte:", int(firstByte))
+
+	return firstByte, nil
+
+	/*
+		switch {
+		case firstByte >= 39 && firstByte <= 42:
+			return int(firstByte - 39), nil
+		case firstByte >= 27 && firstByte <= 30:
+			return int(firstByte - 27), nil
+		default:
+			return 0, fmt.Errorf("invalid first byte value in signature")
+		}*/
+}
+
+func (tapProtocol *TapProtocol) prependIntToBytes(slice []byte, value int) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	// Use binary.BigEndian or binary.LittleEndian depending on your needs
+	err := binary.Write(buf, binary.BigEndian, int64(value))
+	if err != nil {
+		return nil, err
+	}
+	// Prepend the byte representation of the integer
+	return append(buf.Bytes(), slice...), nil
+}
+
+func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicKey *secp256k1.PublicKey) (*secp256k1.PublicKey, error) {
+
+	recId, err := tapProtocol.recID(signature[:])
+
+	if err != nil {
+		fmt.Println("REC ID ERROR")
+		fmt.Println(err)
+		return nil, err
+	}
+
+	newSig := append([]byte{recId}, signature[1:]...)
+
+	//newSig, err := tapProtocol.prependIntToBytes(signature[:64], recId)
+
+	if err != nil {
+		fmt.Println("PREPEND INT TO BYTES ERROR")
+		fmt.Println(err)
+		return nil, err
+	}
+
+	fmt.Println("New signature:", newSig)
+
+	signature2, err := ecdsa.ParseDERSignature(newSig[:])
+
+	if err != nil {
+		fmt.Println("PARSE DER SIGNATURE ERROR")
+		fmt.Println(err)
+		return nil, err
+	}
+
+	messageDigest := sha256.Sum256(publicKey.SerializeUncompressed())
+
+	publicKey2, compressed, err := ecdsa.RecoverCompact(signature2.Serialize()[:], messageDigest[:])
+
+	if err != nil {
+		fmt.Println("RECOVER COMPACT ERROR")
+		fmt.Println(err)
+		return nil, err
+	}
+
+	if compressed {
+		fmt.Println("Compressed")
+	}
+
+	publicKeyHex := publicKey2.SerializeUncompressed()
+	// Use publicKeyHex as needed
+
+	fmt.Println("Public Key:", publicKeyHex)
+
+	return publicKey2, nil
 
 }
