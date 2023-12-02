@@ -193,38 +193,40 @@ func (tapProtocol *TapProtocol) prependIntToBytes(slice []byte, value int) ([]by
 }
 
 func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicKey *secp256k1.PublicKey) (*secp256k1.PublicKey, error) {
+	/*
+		recId, err := tapProtocol.recID(signature[:])
 
-	recId, err := tapProtocol.recID(signature[:])
+		if err != nil {
+			fmt.Println("REC ID ERROR")
+			fmt.Println(err)
+			return nil, err
+		}
 
-	if err != nil {
-		fmt.Println("REC ID ERROR")
-		fmt.Println(err)
-		return nil, err
-	}
+		newSig := append([]byte{recId}, signature[1:]...)
 
-	newSig := append([]byte{recId}, signature[1:]...)
+		//newSig, err := tapProtocol.prependIntToBytes(signature[:64], recId)
 
-	//newSig, err := tapProtocol.prependIntToBytes(signature[:64], recId)
+		if err != nil {
+			fmt.Println("PREPEND INT TO BYTES ERROR")
+			fmt.Println(err)
+			return nil, err
+		}*/
 
-	if err != nil {
-		fmt.Println("PREPEND INT TO BYTES ERROR")
-		fmt.Println(err)
-		return nil, err
-	}
+	//fmt.Println("New signature:", newSig)
+	/*
+		signature2, err := ecdsa.ParseDERSignature(newSig[:])
 
-	fmt.Println("New signature:", newSig)
+		if err != nil {
+			fmt.Println("PARSE DER SIGNATURE ERROR")
+			fmt.Println(err)
+			return nil, err
+		}
 
-	signature2, err := ecdsa.ParseDERSignature(newSig[:])
-
-	if err != nil {
-		fmt.Println("PARSE DER SIGNATURE ERROR")
-		fmt.Println(err)
-		return nil, err
-	}
+		fmt.Println(signature2)*/
 
 	messageDigest := sha256.Sum256(publicKey.SerializeUncompressed())
 
-	publicKey2, compressed, err := ecdsa.RecoverCompact(signature2.Serialize()[:], messageDigest[:])
+	publicKey2, compressed, err := ecdsa.RecoverCompact(signature[:], messageDigest[:])
 
 	if err != nil {
 		fmt.Println("RECOVER COMPACT ERROR")
