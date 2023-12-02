@@ -47,42 +47,70 @@ func (tapProtocol *TapProtocol) certs() error {
 		fmt.Println("# CERTS #")
 		fmt.Println("#########")
 
-		fmt.Printf("Certificate chain: %x\n", data.CertificateChain[:])
+		nonce, err := tapProtocol.createNonce()
 
-		firstSignature := data.CertificateChain[0]
+		if err != nil {
+			return err
+		}
 
-		r := new(btcec.ModNScalar)
-		r.SetByteSlice(firstSignature[0:32])
-
-		s := new(btcec.ModNScalar)
-		s.SetByteSlice(firstSignature[32:])
-
-		signature := ecdsa.NewSignature(r, s)
-
-		checkData, err := tapProtocol.check()
+		checkData, err := tapProtocol.check(nonce)
 
 		if err != nil {
 			return err
 		}
 
 		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
-		message = append(message, checkData.CardNonce[:]...)
-		message = append(message, tapProtocol.currentSlotPublicKey[:]...)
+		message = append(message, nonce[:]...)
+
+		var zeroArray [33]byte
+		if tapProtocol.currentSlotPublicKey != zeroArray {
+			fmt.Println("Adding current slot public key")
+			message = append(message, tapProtocol.currentSlotPublicKey[:]...)
+		}
 
 		messageDigest := sha256.Sum256([]byte(message))
-
-		publicKey, err := btcec.ParsePubKey(tapProtocol.currentSlotPublicKey[:])
 
 		if err != nil {
 			return err
 		}
 
+		r := new(btcec.ModNScalar)
+		r.SetByteSlice(checkData.AuthSignature[0:32])
+
+		s := new(btcec.ModNScalar)
+		s.SetByteSlice(checkData.AuthSignature[32:])
+
+		signature := ecdsa.NewSignature(r, s)
+
+		publicKey, err := btcec.ParsePubKey(tapProtocol.cardPublicKey[:])
+
 		verified := signature.Verify(messageDigest[:], publicKey)
 
 		if !verified {
-			return errors.New("invalid signature")
+			return errors.New("invalid signature certs")
+		} else {
+			fmt.Println("Signature verified")
 		}
 
+		if err != nil {
+			return err
+		}
+		/*
+			for i := 0; i < len(data.CertificateChain); i++ {
+
+				fmt.Println(i)
+				fmt.Println("Certificate chain: ", data.CertificateChain[i])
+
+				x := sha256.Sum256(append(publicKey.SerializeUncompressed(), data.CertificateChain[i][:]...))
+
+				publicKey, err := btcec.ParsePubKey(x[:])
+
+				if err != nil {
+					return err
+				}
+
+			}
+		*/
 		tapProtocol.currentCardNonce = checkData.CardNonce
 
 		return nil
@@ -96,10 +124,6 @@ func (tapProtocol *TapProtocol) certs() error {
 
 	}
 
-	//CertificateChain [][65]byte
-
 	//factoryRootPublicKey = "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1"
-
-	//return nil
 
 }

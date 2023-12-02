@@ -121,6 +121,8 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 		// Save the current slot public key
 		tapProtocol.currentSlotPublicKey = data.PublicKey
 
+		tapProtocol.currentCardNonce = data.CardNonce
+
 		return &data, nil
 
 	case ErrorData:

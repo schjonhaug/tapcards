@@ -5,13 +5,7 @@ import (
 	"fmt"
 )
 
-func (tapProtocol *TapProtocol) check() (*checkData, error) {
-
-	nonce, err := tapProtocol.createNonce()
-
-	if err != nil {
-		return nil, err
-	}
+func (tapProtocol *TapProtocol) check(nonce []byte) (*checkData, error) {
 
 	checkCommand := checkCommand{
 		command: command{Cmd: "check"},
