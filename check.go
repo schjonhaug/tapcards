@@ -18,26 +18,18 @@ func (tapProtocol *TapProtocol) check(nonce []byte) (*checkData, error) {
 		return nil, err
 	}
 
-	switch data := data.(type) {
+	checkData, ok := data.(checkData)
 
-	case checkData:
-
-		fmt.Println("#########")
-		fmt.Println("# CHECK #")
-		fmt.Println("#########")
-
-		fmt.Printf("Auth signature: %x\n", data.AuthSignature[:])
-		fmt.Printf("Card Nonce: %x\n", data.CardNonce[:])
-
-		return &data, nil
-
-	case errorData:
-		fmt.Println("FOUND ERROR DATA")
-		return nil, errors.New(data.Error)
-
-	default:
-		return nil, errors.New("undefined error")
-
+	if !ok {
+		return nil, errors.New("incorrect data type")
 	}
+	fmt.Println("#########")
+	fmt.Println("# CHECK #")
+	fmt.Println("#########")
+
+	fmt.Printf("Auth signature: %x\n", checkData.AuthSignature[:])
+	fmt.Printf("Card Nonce: %x\n", checkData.CardNonce[:])
+
+	return &checkData, nil
 
 }

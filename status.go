@@ -33,45 +33,39 @@ func (tapProtocol *TapProtocol) status() error {
 		return err
 	}
 
-	switch data := data.(type) {
-	case statusData:
+	statusData, ok := data.(statusData)
 
-		fmt.Println("##########")
-		fmt.Println("# STATUS #")
-		fmt.Println("##########")
-
-		fmt.Printf("Pubkey:     %x\n", data.PublicKey)
-		fmt.Printf("Card Nonce: %x\n", data.CardNonce)
-
-		tapProtocol.cardPublicKey = data.PublicKey
-		tapProtocol.currentCardNonce = data.CardNonce
-
-		identity, err := tapProtocol.identity()
-
-		if err != nil {
-			return err
-		}
-
-		tapProtocol.Satscard = Satscard{
-
-			ActiveSlot:     data.Slots[0],
-			NumberOfSlots:  data.Slots[1],
-			Identity:       identity,
-			PaymentAddress: data.Address,
-			Proto:          data.Proto,
-			Birth:          data.Birth,
-			Version:        data.Version,
-		}
-
-		return nil
-
-	case errorData:
-		return errors.New(data.Error)
-
-	default:
-		return errors.New("undefined error")
-
+	if !ok {
+		return errors.New("incorrect data type")
 	}
+	fmt.Println("##########")
+	fmt.Println("# STATUS #")
+	fmt.Println("##########")
+
+	fmt.Printf("Pubkey:     %x\n", statusData.PublicKey)
+	fmt.Printf("Card Nonce: %x\n", statusData.CardNonce)
+
+	tapProtocol.cardPublicKey = statusData.PublicKey
+	tapProtocol.currentCardNonce = statusData.CardNonce
+
+	identity, err := tapProtocol.identity()
+
+	if err != nil {
+		return err
+	}
+
+	tapProtocol.Satscard = Satscard{
+
+		ActiveSlot:     statusData.Slots[0],
+		NumberOfSlots:  statusData.Slots[1],
+		Identity:       identity,
+		PaymentAddress: statusData.Address,
+		Proto:          statusData.Proto,
+		Birth:          statusData.Birth,
+		Version:        statusData.Version,
+	}
+
+	return nil
 
 }
 

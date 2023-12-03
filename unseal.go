@@ -48,42 +48,36 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 		return "", err
 	}
 
-	switch data := data.(type) {
-	case unsealData:
+	unsealData, ok := data.(unsealData)
 
-		fmt.Println("##########")
-		fmt.Println("# UNSEAL #")
-		fmt.Println("##########")
-
-		fmt.Println("Slot:             ", data.Slot)
-		fmt.Printf("Private Key:       %x\n", data.PrivateKey)
-		fmt.Printf("Public Key:        %x\n", data.PublicKey)
-		fmt.Printf("Master Public Key: %x\n", data.MasterPublicKey)
-		fmt.Printf("Chain Code:        %x\n", data.ChainCode)
-		fmt.Printf("Card Nonce:        %x\n", data.CardNonce)
-
-		tapProtocol.currentCardNonce = data.CardNonce
-
-		// Calculate and return private key as wif
-
-		unencryptedPrivateKeyBytes := xor(data.PrivateKey[:], tapProtocol.sessionKey[:])
-
-		privateKey, _ := btcec.PrivKeyFromBytes(unencryptedPrivateKeyBytes)
-
-		wif, err := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
-
-		if err != nil {
-			return "", err
-		}
-
-		return wif.String(), nil
-
-	case errorData:
-		return "", errors.New(data.Error)
-
-	default:
-		return "", errors.New("undefined error")
-
+	if !ok {
+		return "", errors.New("incorrect data type")
 	}
+	fmt.Println("##########")
+	fmt.Println("# UNSEAL #")
+	fmt.Println("##########")
+
+	fmt.Println("Slot:             ", unsealData.Slot)
+	fmt.Printf("Private Key:       %x\n", unsealData.PrivateKey)
+	fmt.Printf("Public Key:        %x\n", unsealData.PublicKey)
+	fmt.Printf("Master Public Key: %x\n", unsealData.MasterPublicKey)
+	fmt.Printf("Chain Code:        %x\n", unsealData.ChainCode)
+	fmt.Printf("Card Nonce:        %x\n", unsealData.CardNonce)
+
+	tapProtocol.currentCardNonce = unsealData.CardNonce
+
+	// Calculate and return private key as wif
+
+	unencryptedPrivateKeyBytes := xor(unsealData.PrivateKey[:], tapProtocol.sessionKey[:])
+
+	privateKey, _ := btcec.PrivKeyFromBytes(unencryptedPrivateKeyBytes)
+
+	wif, err := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
+
+	if err != nil {
+		return "", err
+	}
+
+	return wif.String(), nil
 
 }
