@@ -24,7 +24,10 @@ func (tapProtocol *TapProtocol) Certs() error {
 
 func (tapProtocol *TapProtocol) certs() error {
 
-	tapProtocol.status()
+	if tapProtocol.currentCardNonce == [16]byte{} {
+		tapProtocol.status()
+	}
+
 	tapProtocol.read()
 
 	//TODO
@@ -66,8 +69,7 @@ func (tapProtocol *TapProtocol) certs() error {
 		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
 		message = append(message, nonce[:]...)
 
-		var zeroArray [33]byte
-		if tapProtocol.currentSlotPublicKey != zeroArray {
+		if tapProtocol.currentSlotPublicKey != [33]byte{} {
 			fmt.Println("Adding current slot public key")
 			message = append(message, tapProtocol.currentSlotPublicKey[:]...)
 		}
@@ -123,8 +125,7 @@ func (tapProtocol *TapProtocol) certs() error {
 
 		return nil
 
-	case ErrorData:
-		fmt.Println("FOUND ERROR DATA")
+	case errorData:
 		return errors.New(data.Error)
 
 	default:

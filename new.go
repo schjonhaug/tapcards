@@ -16,8 +16,9 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
 func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 
-	tapProtocol.status()
-
+	if tapProtocol.currentCardNonce == [16]byte{} {
+		tapProtocol.status()
+	}
 	fmt.Println("------------")
 	fmt.Println("New")
 	fmt.Println("------------")
@@ -42,27 +43,20 @@ func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	newData, ok := data.(newData)
 
-	switch data := data.(type) {
-	case NewData:
-
-		fmt.Println("#######")
-		fmt.Println("# NEW #")
-		fmt.Println("#######")
-
-		fmt.Println("Slot:             ", data.Slot)
-
-		tapProtocol.currentCardNonce = data.CardNonce
-		tapProtocol.activeSlot = data.Slot
-
-		return data.Slot, nil
-	case ErrorData:
-		fmt.Println("FOUND ERROR DATA")
-		return 0, errors.New(data.Error)
-
-	default:
-		return 0, errors.New("undefined error")
-
+	if !ok {
+		return 0, errors.New("incorrect data type")
 	}
+	fmt.Println("#######")
+	fmt.Println("# NEW #")
+	fmt.Println("#######")
+
+	fmt.Println("Slot:             ", newData.Slot)
+
+	tapProtocol.currentCardNonce = newData.CardNonce
+	tapProtocol.activeSlot = newData.Slot
+
+	return newData.Slot, nil
 
 }

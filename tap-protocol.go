@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
@@ -20,6 +21,32 @@ type TapProtocol struct {
 	numberOfSlots        int
 	transport            Transport
 	currentSlotPublicKey [33]byte
+}
+
+type Satscard struct {
+	ActiveSlot     int
+	NumberOfSlots  int
+	Identity       string
+	PaymentAddress string
+}
+
+func (tapprotocol *TapProtocol) Satscard() (Satscard, error) {
+
+	identity, err := tapprotocol.identity()
+
+	if err != nil {
+		return Satscard{}, err
+	}
+
+	satscard := Satscard{
+
+		ActiveSlot:    tapprotocol.activeSlot + 1,
+		NumberOfSlots: tapprotocol.numberOfSlots,
+		Identity:      identity,
+	}
+
+	return satscard, nil
+
 }
 
 // Active slot number
@@ -40,13 +67,14 @@ func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth
 	fmt.Println("CVC:    ", cvc)
 	fmt.Println("Command:", command.Cmd)
 
-	cardPublicKey, err := secp256k1.ParsePubKey(tapProtocol.cardPublicKey[:])
+	cardPublicKey, err := btcec.ParsePubKey(tapProtocol.cardPublicKey[:])
 	if err != nil {
 		return nil, err
 	}
 
 	// Derive an ephemeral public/private keypair for performing ECDHE with
 	// the recipient.
+
 	ephemeralPrivateKey, err := secp256k1.GeneratePrivateKey()
 	if err != nil {
 
@@ -133,7 +161,7 @@ func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("\nNONCE: %x\n", nonce)
+	fmt.Printf("\nCreated nonce: %x\n", nonce)
 
 	tapProtocol.appNonce = nonce
 
@@ -149,6 +177,14 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 	data := <-channel
 
-	return data, nil
+	switch data := data.(type) {
+
+	case errorData:
+		return nil, fmt.Errorf("%d: %v", data.Code, data.Error)
+
+	default:
+		return data, nil
+
+	}
 
 }

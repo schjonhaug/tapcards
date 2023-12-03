@@ -50,17 +50,13 @@ func (tapProtocol *TapProtocol) Read() (string, error) {
 // read a SATSCARD’s current payment address
 func (tapProtocol *TapProtocol) read() (*readData, error) {
 
-	fmt.Println("----------------------------")
-	fmt.Println("Read current payment address")
-	fmt.Println("----------------------------")
-
-	statusData, err := tapProtocol.status()
-
-	if err != nil {
-		return nil, err
+	if tapProtocol.currentCardNonce == [16]byte{} {
+		tapProtocol.status()
 	}
 
-	// READ
+	fmt.Println("----------------------------")
+	fmt.Println("Read ")
+	fmt.Println("----------------------------")
 
 	command := command{Cmd: "read"}
 
@@ -93,7 +89,7 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 
 		// Verify public key with signature
 
-		message := append([]byte("OPENDIME"), statusData.CardNonce[:]...)
+		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
 		message = append(message, tapProtocol.appNonce[:]...)
 		message = append(message, []byte{byte(tapProtocol.activeSlot)}...)
 
@@ -125,7 +121,7 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 
 		return &data, nil
 
-	case ErrorData:
+	case errorData:
 		return nil, errors.New(data.Error)
 
 	default:

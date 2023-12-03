@@ -69,7 +69,7 @@ func (tapProtocol *TapProtocol) status() (*statusData, error) {
 
 		return &data, nil
 
-	case ErrorData:
+	case errorData:
 		return nil, errors.New(data.Error)
 
 	default:

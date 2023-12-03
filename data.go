@@ -2,12 +2,12 @@ package tapprotocol
 
 // DATA
 
-type CardResponse struct {
+type cardResponse struct {
 	CardNonce [16]byte `cbor:"card_nonce"`
 }
 
 type statusData struct {
-	CardResponse
+	cardResponse
 	Proto     int
 	Birth     int
 	Slots     []int
@@ -16,8 +16,8 @@ type statusData struct {
 	PublicKey [33]byte `cbor:"pubkey"`
 }
 
-type UnsealData struct {
-	CardResponse
+type unsealData struct {
+	cardResponse
 	Slot            int      // slot just unsealed
 	PrivateKey      [32]byte `cbor:"privkey"`    // private key for spending
 	PublicKey       [33]byte `cbor:"pubkey"`     // slot's pubkey (convenience, since could be calc'd from privkey)
@@ -26,18 +26,18 @@ type UnsealData struct {
 
 }
 
-type NewData struct {
-	CardResponse
+type newData struct {
+	cardResponse
 	Slot int
 }
 
 type checkData struct {
-	CardResponse
+	cardResponse
 	AuthSignature [64]byte `cbor:"auth_sig"` //  signature using card_pubkey
 }
 
 type readData struct {
-	CardResponse
+	cardResponse
 	Signature [64]byte `cbor:"sig"`    //  signature over a bunch of fields using private key of slot
 	PublicKey [33]byte `cbor:"pubkey"` // public key for this slot/derivation
 
@@ -47,7 +47,7 @@ type certificatesData struct {
 	CertificateChain [][65]byte `cbor:"cert_chain"`
 }
 
-type ErrorData struct {
+type errorData struct {
 	Code  int
 	Error string
 }

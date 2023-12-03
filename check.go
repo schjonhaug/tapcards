@@ -31,7 +31,7 @@ func (tapProtocol *TapProtocol) check(nonce []byte) (*checkData, error) {
 
 		return &data, nil
 
-	case ErrorData:
+	case errorData:
 		fmt.Println("FOUND ERROR DATA")
 		return nil, errors.New(data.Error)
 

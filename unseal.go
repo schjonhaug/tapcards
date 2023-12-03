@@ -19,7 +19,9 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 }
 func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 
-	tapProtocol.status()
+	if tapProtocol.currentCardNonce == [16]byte{} {
+		tapProtocol.status()
+	}
 
 	fmt.Println("----------------------------")
 	fmt.Println("Unseal")
@@ -47,7 +49,7 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 	}
 
 	switch data := data.(type) {
-	case UnsealData:
+	case unsealData:
 
 		fmt.Println("##########")
 		fmt.Println("# UNSEAL #")
@@ -76,8 +78,7 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 
 		return wif.String(), nil
 
-	case ErrorData:
-		fmt.Println("FOUND ERROR DATA")
+	case errorData:
 		return "", errors.New(data.Error)
 
 	default:

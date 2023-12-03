@@ -40,11 +40,11 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 	case unsealCommand:
 
-		var v UnsealData
+		var v unsealData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				panic(err)
@@ -57,11 +57,11 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 		channel <- v
 	case newCommand:
 
-		var v NewData
+		var v newData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				panic(err)
@@ -78,7 +78,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				fmt.Println(err)
@@ -96,7 +96,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				fmt.Println(err)
@@ -114,7 +114,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				panic(err)
@@ -128,7 +128,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 	default:
 
-		var v ErrorData
+		var v errorData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 			panic(err)
@@ -159,14 +159,6 @@ func (transport Transport) Send(command any, channel chan any) {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
-
-	fmt.Println("Sending command: ", command)
-
-	/*connection, err := net.Dial("unix", "/tmp/ecard-pipe")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer connection.Close()*/
 
 	go transport.reader(transport.connection, command, channel)
 	_, err = transport.connection.Write(cbor_serialized)
