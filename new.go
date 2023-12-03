@@ -16,6 +16,13 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
 func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 
+	// Check if we can open the next slot
+	if tapProtocol.Satscard.ActiveSlot+1 >= tapProtocol.NumberOfSlots {
+
+		return 0, errors.New("no more slots available")
+
+	}
+
 	if tapProtocol.currentCardNonce == [16]byte{} {
 		tapProtocol.status()
 	}
