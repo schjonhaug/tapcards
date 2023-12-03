@@ -1,4 +1,4 @@
-package tapprotocol
+package main
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ func waitUntilCardPresent(ctx *scard.Context, readers []string) (int, error) {
 	}
 }
 
-func xmain() {
+func main() {
 
 	// Establish a context
 	ctx, err := scard.EstablishContext()
