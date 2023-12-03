@@ -26,7 +26,7 @@ func (tapProtocol *TapProtocol) wait() (*waitData, error) {
 	fmt.Println("Wait")
 	fmt.Println("----------------------------")
 
-	waitCommand := waitCommand{command{Cmd: "wait"}}
+	waitCommand := waitCommand{Command{Cmd: "wait"}}
 
 	data, err := tapProtocol.sendReceive(waitCommand)
 

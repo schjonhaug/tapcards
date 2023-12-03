@@ -27,7 +27,7 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 	fmt.Println("Unseal")
 	fmt.Println("----------------------------")
 
-	command := command{Cmd: "unseal"}
+	command := Command{Cmd: "unseal"}
 
 	auth, err := tapProtocol.authenticate(cvc, command)
 
@@ -37,7 +37,7 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 	}
 
 	unsealCommand := unsealCommand{
-		command: command,
+		Command: command,
 		auth:    *auth,
 		Slot:    tapProtocol.Satscard.ActiveSlot,
 	}

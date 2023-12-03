@@ -2,7 +2,7 @@ package tapprotocol
 
 // COMMANDS
 
-type command struct {
+type Command struct {
 	Cmd string `cbor:"cmd"`
 }
 
@@ -11,18 +11,18 @@ type auth struct {
 	XCVC            []byte `cbor:"xcvc"`    //encrypted CVC value
 }
 
-type statusCommand struct {
-	command
+type StatusCommand struct {
+	Command
 }
 
 type unsealCommand struct {
-	command
+	Command
 	auth
 	Slot int `cbor:"slot"`
 }
 
 type newCommand struct {
-	command
+	Command
 	auth
 	Slot int `cbor:"slot"` // (optional: default zero) slot to be affected, must equal currently-active slot number
 	//ChainCode [32]byte `cbor:"chain_code"` // app's entropy share to be applied to new slot (optional on SATSCARD)
@@ -30,19 +30,19 @@ type newCommand struct {
 }
 
 type readCommand struct {
-	command
+	Command
 	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 
 type certsCommand struct {
-	command
+	Command
 }
 
 type checkCommand struct {
-	command
+	Command
 	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 
 type waitCommand struct {
-	command
+	Command
 }

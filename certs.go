@@ -37,7 +37,7 @@ func (tapProtocol *TapProtocol) certs() error {
 	fmt.Println("------------")
 
 	certsCommand := certsCommand{
-		command{Cmd: "certs"},
+		Command{Cmd: "certs"},
 	}
 
 	data, err := tapProtocol.sendReceive(certsCommand)

@@ -8,7 +8,7 @@ import (
 func (tapProtocol *TapProtocol) check(nonce []byte) (*checkData, error) {
 
 	checkCommand := checkCommand{
-		command: command{Cmd: "check"},
+		Command: Command{Cmd: "check"},
 		Nonce:   nonce,
 	}
 

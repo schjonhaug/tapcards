@@ -40,6 +40,8 @@ func waitUntilCardPresent(ctx *scard.Context, readers []string) (int, error) {
 
 func main() {
 
+	var tapProtocol tapprotocol.TapProtocol
+
 	// Establish a context
 	ctx, err := scard.EstablishContext()
 	if err != nil {
@@ -125,6 +127,51 @@ func main() {
 		fmt.Println(v)
 
 		//	channel <- v
+
+		// API
+
+		cmd, err = tapProtocol.StatusRequest()
+
+		if err != nil {
+			die(err)
+
+		}
+
+		fmt.Println("Transmit:")
+		fmt.Printf("\tc-apdu: % x\n", cmd)
+		rsp, err = card.Transmit(cmd)
+		if err != nil {
+			die(err)
+		}
+		fmt.Printf("\tr-apdu: % x\n", rsp)
+
+		rapdu, err = apdu.ParseRapdu(rsp)
+
+		if err != nil {
+			die(err)
+
+		}
+
+		fmt.Println("SW1:", hex.EncodeToString([]byte{rapdu.SW1}))
+
+		var w tapprotocol.StatusData
+
+		if err := decMode.Unmarshal(rapdu.Data, &w); err != nil {
+
+			var e tapprotocol.ErrorData
+
+			if err := decMode.Unmarshal(rapdu.Data, &e); err != nil {
+				fmt.Println("error:", err)
+				//channel <- err
+			}
+
+			fmt.Println(e)
+
+			//channel <- e
+
+		}
+
+		fmt.Println(w)
 
 	}
 }

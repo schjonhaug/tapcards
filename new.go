@@ -31,7 +31,7 @@ func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 	fmt.Println("New")
 	fmt.Println("------------")
 
-	command := command{Cmd: "new"}
+	command := Command{Cmd: "new"}
 
 	auth, err := tapProtocol.authenticate(cvc, command)
 
@@ -41,7 +41,7 @@ func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 	}
 
 	newCommand := newCommand{
-		command: command,
+		Command: command,
 		Slot:    tapProtocol.Satscard.ActiveSlot,
 		auth:    *auth,
 	}

@@ -26,7 +26,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
 	switch command.(type) {
-	case statusCommand:
+	case StatusCommand:
 
 		var v StatusData
 

@@ -34,7 +34,7 @@ type TapProtocol struct {
 	Satscard
 }
 
-func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth, error) {
+func (tapProtocol *TapProtocol) authenticate(cvc string, command Command) (*auth, error) {
 
 	fmt.Println("\n########")
 	fmt.Println("# AUTH #")

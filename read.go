@@ -39,7 +39,7 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 	fmt.Println("Read ")
 	fmt.Println("----------------------------")
 
-	command := command{Cmd: "read"}
+	command := Command{Cmd: "read"}
 
 	nonce, err := tapProtocol.createNonce()
 
@@ -48,7 +48,7 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 	}
 
 	readCommand := readCommand{
-		command: command,
+		Command: command,
 		Nonce:   nonce,
 	}
 
