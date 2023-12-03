@@ -18,7 +18,7 @@ func main() {
 
 	case "status":
 
-		identity, err := tapProtocol.Status()
+		err := tapProtocol.Status()
 
 		if err != nil {
 
@@ -26,10 +26,7 @@ func main() {
 			return
 		}
 
-		//fmt.Println("Active slot", tapProtocol.ActiveSlot())
-		//fmt.Println(tapProtocol.NumberOfSlots())
-
-		fmt.Println("Identity: " + identity)
+		fmt.Println(tapProtocol.Satscard)
 
 	case "read":
 
@@ -41,6 +38,8 @@ func main() {
 		}
 
 		fmt.Println(paymentAddress)
+
+		fmt.Println(tapProtocol.Satscard)
 
 	case "unseal":
 

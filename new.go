@@ -34,7 +34,7 @@ func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 
 	newCommand := newCommand{
 		command: command,
-		Slot:    tapProtocol.activeSlot, //TODO check maximum
+		Slot:    tapProtocol.Satscard.ActiveSlot, //TODO check maximum
 		auth:    *auth,
 	}
 
@@ -55,7 +55,7 @@ func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 	fmt.Println("Slot:             ", newData.Slot)
 
 	tapProtocol.currentCardNonce = newData.CardNonce
-	tapProtocol.activeSlot = newData.Slot
+	tapProtocol.Satscard.ActiveSlot = newData.Slot
 
 	return newData.Slot, nil
 

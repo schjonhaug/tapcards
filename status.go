@@ -9,30 +9,16 @@ import (
 )
 
 // STATUS
-func (tapProtocol *TapProtocol) Status() (string, error) {
+func (tapProtocol *TapProtocol) Status() error {
 
 	tapProtocol.transport.Connect()
 	defer tapProtocol.transport.Disconnect()
 
-	statusData, err := tapProtocol.status()
-
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-
-	identity, err := tapProtocol.identity(statusData.PublicKey)
-
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-
-	return identity, nil
+	return tapProtocol.status()
 
 }
 
-func (tapProtocol *TapProtocol) status() (*statusData, error) {
+func (tapProtocol *TapProtocol) status() error {
 
 	fmt.Println("----------------------------")
 	fmt.Println("Status")
@@ -44,7 +30,7 @@ func (tapProtocol *TapProtocol) status() (*statusData, error) {
 
 	if err != nil {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
 
 	switch data := data.(type) {
@@ -54,32 +40,42 @@ func (tapProtocol *TapProtocol) status() (*statusData, error) {
 		fmt.Println("# STATUS #")
 		fmt.Println("##########")
 
-		fmt.Println("Proto:     ", data.Proto)
-		fmt.Println("Birth:     ", data.Birth)
-		fmt.Println("Slots:     ", data.Slots)
-		fmt.Println("Addr:      ", data.Address)
-		fmt.Println("Ver:       ", data.Version)
 		fmt.Printf("Pubkey:     %x\n", data.PublicKey)
 		fmt.Printf("Card Nonce: %x\n", data.CardNonce)
 
 		tapProtocol.cardPublicKey = data.PublicKey
 		tapProtocol.currentCardNonce = data.CardNonce
-		tapProtocol.activeSlot = data.Slots[0]
-		tapProtocol.numberOfSlots = data.Slots[1]
 
-		return &data, nil
+		identity, err := tapProtocol.identity()
+
+		if err != nil {
+			return err
+		}
+
+		tapProtocol.Satscard = Satscard{
+
+			ActiveSlot:     data.Slots[0],
+			NumberOfSlots:  data.Slots[1],
+			Identity:       identity,
+			PaymentAddress: data.Address,
+			Proto:          data.Proto,
+			Birth:          data.Birth,
+			Version:        data.Version,
+		}
+
+		return nil
 
 	case errorData:
-		return nil, errors.New(data.Error)
+		return errors.New(data.Error)
 
 	default:
-		return nil, errors.New("undefined error")
+		return errors.New("undefined error")
 
 	}
 
 }
 
-func (tapProtocol *TapProtocol) identity(cardPublicKey [33]byte) (string, error) {
+func (tapProtocol *TapProtocol) identity() (string, error) {
 	// convert pubkey into a hash formatted for humans
 	// - sha256(compressed-pubkey)
 	// - skip first 8 bytes of that (because that's revealed in NFC URL)
@@ -87,11 +83,11 @@ func (tapProtocol *TapProtocol) identity(cardPublicKey [33]byte) (string, error)
 	// - insert dashes
 	// - result is 23 chars long
 
-	if len(cardPublicKey) != 33 {
+	if len(tapProtocol.cardPublicKey) != 33 {
 		return "", errors.New("expecting compressed pubkey")
 	}
 
-	checksum := sha256.Sum256(cardPublicKey[:])
+	checksum := sha256.Sum256(tapProtocol.cardPublicKey[:])
 
 	base32String := base32.StdEncoding.EncodeToString(checksum[8:])
 

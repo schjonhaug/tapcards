@@ -23,26 +23,7 @@ func (tapProtocol *TapProtocol) Read() (string, error) {
 		return "", err
 	}
 
-	// Convert public key to address
-
-	hash160 := btcutil.Hash160(readData.PublicKey[:])
-
-	convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
-	if err != nil {
-		return "", err
-	}
-
-	zero := make([]byte, 1)
-
-	encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
-	if err != nil {
-		return "", err
-	}
-
-	// Show the encoded readData.
-	fmt.Println("Encoded Data:", encoded)
-
-	return encoded, nil
+	return paymentAddress(readData)
 
 }
 
@@ -77,56 +58,78 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 		return nil, err
 	}
 
-	switch data := data.(type) {
-	case readData:
+	readData, ok := data.(readData)
 
-		fmt.Println("########")
-		fmt.Println("# READ #")
-		fmt.Println("########")
-
-		fmt.Printf("Signature: %x\n", data.Signature)
-		fmt.Printf("Public Key: %x\n", data.PublicKey)
-
-		// Verify public key with signature
-
-		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
-		message = append(message, tapProtocol.appNonce[:]...)
-		message = append(message, []byte{byte(tapProtocol.activeSlot)}...)
-
-		messageDigest := sha256.Sum256([]byte(message))
-
-		r := new(btcec.ModNScalar)
-		r.SetByteSlice(data.Signature[0:32])
-
-		s := new(btcec.ModNScalar)
-		s.SetByteSlice(data.Signature[32:])
-
-		signature := ecdsa.NewSignature(r, s)
-
-		publicKey, err := btcec.ParsePubKey(data.PublicKey[:])
-		if err != nil {
-			return nil, err
-		}
-
-		verified := signature.Verify(messageDigest[:], publicKey)
-
-		if !verified {
-			return nil, errors.New("invalid signature")
-		}
-
-		// Save the current slot public key
-		tapProtocol.currentSlotPublicKey = data.PublicKey
-
-		tapProtocol.currentCardNonce = data.CardNonce
-
-		return &data, nil
-
-	case errorData:
-		return nil, errors.New(data.Error)
-
-	default:
-		return nil, errors.New("undefined error")
-
+	if !ok {
+		return nil, errors.New("incorrect data type")
 	}
 
+	fmt.Println("########")
+	fmt.Println("# READ #")
+	fmt.Println("########")
+
+	fmt.Printf("Signature: %x\n", readData.Signature)
+	fmt.Printf("Public Key: %x\n", readData.PublicKey)
+
+	// Verify public key with signature
+
+	message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
+	message = append(message, tapProtocol.appNonce[:]...)
+	message = append(message, []byte{byte(tapProtocol.Satscard.ActiveSlot)}...)
+
+	messageDigest := sha256.Sum256([]byte(message))
+
+	r := new(btcec.ModNScalar)
+	r.SetByteSlice(readData.Signature[0:32])
+
+	s := new(btcec.ModNScalar)
+	s.SetByteSlice(readData.Signature[32:])
+
+	signature := ecdsa.NewSignature(r, s)
+
+	publicKey, err := btcec.ParsePubKey(readData.PublicKey[:])
+	if err != nil {
+		return nil, err
+	}
+
+	verified := signature.Verify(messageDigest[:], publicKey)
+
+	if !verified {
+		return nil, errors.New("invalid signature read")
+	}
+
+	// Save the current slot public key
+	tapProtocol.currentSlotPublicKey = readData.PublicKey
+
+	tapProtocol.currentCardNonce = readData.CardNonce
+
+	paymentAddress, err := paymentAddress(&readData)
+
+	if err != nil {
+		return nil, err
+	}
+
+	tapProtocol.Satscard.PaymentAddress = paymentAddress
+
+	return &readData, nil
+
+}
+
+// Convert public key to address
+func paymentAddress(readData *readData) (string, error) {
+	hash160 := btcutil.Hash160(readData.PublicKey[:])
+
+	convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
+	if err != nil {
+		return "", err
+	}
+
+	zero := make([]byte, 1)
+
+	encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
+	if err != nil {
+		return "", err
+	}
+
+	return encoded, nil
 }

@@ -12,50 +12,26 @@ import (
 
 // TAP PROTOCOL
 
-type TapProtocol struct {
-	appNonce             []byte
-	currentCardNonce     [16]byte
-	cardPublicKey        [33]byte
-	sessionKey           [32]byte
-	activeSlot           int
-	numberOfSlots        int
-	transport            Transport
-	currentSlotPublicKey [33]byte
-}
-
 type Satscard struct {
 	ActiveSlot     int
 	NumberOfSlots  int
 	Identity       string
 	PaymentAddress string
+	Proto          int
+	Birth          int
+	Version        string
 }
 
-func (tapprotocol *TapProtocol) Satscard() (Satscard, error) {
+type TapProtocol struct {
+	appNonce             []byte
+	currentCardNonce     [16]byte
+	cardPublicKey        [33]byte
+	sessionKey           [32]byte
+	currentSlotPublicKey [33]byte
 
-	identity, err := tapprotocol.identity()
+	transport Transport
 
-	if err != nil {
-		return Satscard{}, err
-	}
-
-	satscard := Satscard{
-
-		ActiveSlot:    tapprotocol.activeSlot + 1,
-		NumberOfSlots: tapprotocol.numberOfSlots,
-		Identity:      identity,
-	}
-
-	return satscard, nil
-
-}
-
-// Active slot number
-func (tapProtocol *TapProtocol) ActiveSlot() int {
-	return tapProtocol.activeSlot
-}
-
-func (tapProtocol *TapProtocol) NumberOfSlots() int {
-	return tapProtocol.numberOfSlots
+	Satscard
 }
 
 func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth, error) {

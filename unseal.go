@@ -39,7 +39,7 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 	unsealCommand := unsealCommand{
 		command: command,
 		auth:    *auth,
-		Slot:    tapProtocol.activeSlot,
+		Slot:    tapProtocol.Satscard.ActiveSlot,
 	}
 
 	data, err := tapProtocol.sendReceive(unsealCommand)
