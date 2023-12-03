@@ -31,7 +31,15 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 		var v statusData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
-			panic(err)
+
+			var e errorData
+
+			if err := decMode.Unmarshal(buf, &e); err != nil {
+				channel <- err
+			}
+
+			channel <- e
+
 		}
 
 		channel <- v
@@ -45,7 +53,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
-				panic(err)
+				channel <- err
 			}
 
 			channel <- e
@@ -62,7 +70,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
-				panic(err)
+				channel <- err
 			}
 
 			channel <- e
@@ -79,7 +87,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
-				fmt.Println(err)
+				channel <- err
 
 			}
 
@@ -97,7 +105,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
-				fmt.Println(err)
+				channel <- err
 
 			}
 
@@ -115,7 +123,24 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 			var e errorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
-				panic(err)
+				channel <- err
+			}
+
+			channel <- e
+
+		}
+
+		channel <- v
+	case waitCommand:
+
+		var v waitData
+
+		if err := decMode.Unmarshal(buf, &v); err != nil {
+
+			var e errorData
+
+			if err := decMode.Unmarshal(buf, &e); err != nil {
+				channel <- err
 			}
 
 			channel <- e
@@ -129,12 +154,11 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 		var v errorData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
-			panic(err)
+			channel <- err
 		}
 
 		channel <- v
 
-		fmt.Println("Unknown command??")
 	}
 
 }

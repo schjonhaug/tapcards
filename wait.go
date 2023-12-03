@@ -13,7 +13,7 @@ func (tapProtocol *TapProtocol) Wait() (int, error) {
 	waitData, err := tapProtocol.wait()
 
 	if err != nil {
-		fmt.Println(err)
+
 		return 0, err
 	}
 
@@ -26,16 +26,16 @@ func (tapProtocol *TapProtocol) wait() (*waitData, error) {
 	fmt.Println("Wait")
 	fmt.Println("----------------------------")
 
-	statusCommand := statusCommand{command{Cmd: "wait"}}
+	waitCommand := waitCommand{command{Cmd: "wait"}}
 
-	data, err := tapProtocol.sendReceive(statusCommand)
+	data, err := tapProtocol.sendReceive(waitCommand)
 
 	fmt.Println("########")
 	fmt.Println("# WAIT #")
 	fmt.Println("########")
 
 	if err != nil {
-		fmt.Println(err)
+
 		return nil, err
 	}
 
