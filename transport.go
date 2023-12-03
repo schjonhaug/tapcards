@@ -28,11 +28,11 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 	switch command.(type) {
 	case statusCommand:
 
-		var v statusData
+		var v StatusData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e errorData
+			var e ErrorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				channel <- err
@@ -50,7 +50,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e errorData
+			var e ErrorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				channel <- err
@@ -67,7 +67,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e errorData
+			var e ErrorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				channel <- err
@@ -84,7 +84,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e errorData
+			var e ErrorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				channel <- err
@@ -102,7 +102,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e errorData
+			var e ErrorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				channel <- err
@@ -120,7 +120,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e errorData
+			var e ErrorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				channel <- err
@@ -137,7 +137,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 
-			var e errorData
+			var e ErrorData
 
 			if err := decMode.Unmarshal(buf, &e); err != nil {
 				channel <- err
@@ -151,7 +151,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
 
 	default:
 
-		var v errorData
+		var v ErrorData
 
 		if err := decMode.Unmarshal(buf, &v); err != nil {
 			channel <- err

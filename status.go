@@ -33,7 +33,7 @@ func (tapProtocol *TapProtocol) status() error {
 		return err
 	}
 
-	statusData, ok := data.(statusData)
+	statusData, ok := data.(StatusData)
 
 	if !ok {
 		return errors.New("incorrect data type")

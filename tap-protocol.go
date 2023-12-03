@@ -155,7 +155,7 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 
 	switch data := data.(type) {
 
-	case errorData:
+	case ErrorData:
 		return nil, fmt.Errorf("%d: %v", data.Code, data.Error)
 
 	default:

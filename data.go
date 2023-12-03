@@ -6,7 +6,7 @@ type cardResponse struct {
 	CardNonce [16]byte `cbor:"card_nonce"`
 }
 
-type statusData struct {
+type StatusData struct {
 	cardResponse
 	Proto     int
 	Birth     int
@@ -52,7 +52,7 @@ type waitData struct {
 	AuthDelay int  `cbor:"auth_delay"`
 }
 
-type errorData struct {
+type ErrorData struct {
 	Code  int
 	Error string
 }
