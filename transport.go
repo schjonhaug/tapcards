@@ -11,9 +11,7 @@ import (
 )
 
 type Transport struct {
-	EphemeralPubKey []byte
-	XCVC            []byte
-	connection      net.Conn
+	connection net.Conn
 }
 
 func (transport *Transport) reader(r io.Reader, command any, channel chan any) {
