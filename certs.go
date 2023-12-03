@@ -96,8 +96,6 @@ func (tapProtocol *TapProtocol) certs() error {
 
 		for i := 0; i < len(data.CertificateChain); i++ {
 
-			fmt.Println("Certificate chain: ", data.CertificateChain[i])
-
 			publicKey, err = tapProtocol.signatureToPublicKey(data.CertificateChain[i], publicKey)
 
 			if err != nil {
