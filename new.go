@@ -16,6 +16,10 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 
 func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 
+	if tapProtocol.currentCardNonce == [16]byte{} {
+		tapProtocol.status()
+	}
+
 	// Check if we can open the next slot
 	if tapProtocol.Satscard.ActiveSlot+1 >= tapProtocol.NumberOfSlots {
 
@@ -23,9 +27,6 @@ func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 
 	}
 
-	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.status()
-	}
 	fmt.Println("------------")
 	fmt.Println("New")
 	fmt.Println("------------")
@@ -41,7 +42,7 @@ func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 
 	newCommand := newCommand{
 		command: command,
-		Slot:    tapProtocol.Satscard.ActiveSlot, //TODO check maximum
+		Slot:    tapProtocol.Satscard.ActiveSlot,
 		auth:    *auth,
 	}
 

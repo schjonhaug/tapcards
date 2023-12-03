@@ -10,7 +10,7 @@ import (
 func main() {
 
 	var tapProtocol tapprotocol.TapProtocol
-	cvc := "13456"
+	cvc := "123456"
 
 	argsWithoutProg := os.Args[1:]
 

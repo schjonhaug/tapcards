@@ -3,11 +3,11 @@ module github.com/schjonhaug/coinkite-tap-proto-go
 go 1.19
 
 require (
-	github.com/btcsuite/btcd v0.23.0
+	github.com/btcsuite/btcd v0.23.4
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/btcsuite/btcd/btcutil v1.1.3
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0
-	github.com/ebfe/scard v0.0.0-20190212122703-c3d1b1916a95
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0
+	github.com/ebfe/scard v0.0.0-20230420082256-7db3f9b7c8a7
 	github.com/fxamacker/cbor/v2 v2.4.0
 )
 
