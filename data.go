@@ -47,6 +47,11 @@ type certsData struct {
 	CertificateChain [][65]byte `cbor:"cert_chain"`
 }
 
+type waitData struct {
+	Success   bool `cbor:"success"`
+	AuthDelay int  `cbor:"auth_delay"`
+}
+
 type errorData struct {
 	Code  int
 	Error string

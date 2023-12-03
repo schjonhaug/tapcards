@@ -10,7 +10,7 @@ import (
 func main() {
 
 	var tapProtocol tapprotocol.TapProtocol
-	cvc := "123456"
+	cvc := "13456"
 
 	argsWithoutProg := os.Args[1:]
 
@@ -72,6 +72,17 @@ func main() {
 		}
 
 		fmt.Println("Slot: ", slot)
+
+	case "wait":
+
+		authDelay, err := tapProtocol.Wait()
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println("Auth Delay: ", authDelay)
 
 	default:
 		fmt.Println(fmt.Errorf("unknown command"))
