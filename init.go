@@ -7,7 +7,7 @@ import (
 func (tapProtocol *TapProtocol) InitRequest() (cmd []byte, error error) {
 
 	// This ISO Applet is like doing a status
-	tapProtocol.Stack.Push("status")
+	tapProtocol.Queue.Enqueue("status")
 
 	data := []byte{0xf0, 'C', 'o', 'i', 'n', 'k', 'i', 't', 'e', 'C', 'A', 'R', 'D', 'v', '1'}
 

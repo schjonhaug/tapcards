@@ -18,10 +18,17 @@ func (tapProtocol *TapProtocol) ReadRequest() ([]byte, error) {
 	fmt.Println("----------------------------")
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.Stack.Push("status")
+
+		tapProtocol.Queue.Enqueue("status")
 	}
 
-	tapProtocol.Stack.Push("read")
+	tapProtocol.Queue.Enqueue("read")
+
+	return tapProtocol.nextCommand()
+
+}
+
+func (tapProtocol *TapProtocol) readRequest() ([]byte, error) {
 
 	command := Command{Cmd: "read"}
 

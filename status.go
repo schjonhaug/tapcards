@@ -10,11 +10,19 @@ import (
 
 func (tapProtocol *TapProtocol) StatusRequest() ([]byte, error) {
 
+	//tapProtocol.Stack.Push("status")
+
+	tapProtocol.Queue.Enqueue("status")
+
+	return tapProtocol.nextCommand()
+
+}
+
+func (tapProtocol *TapProtocol) statusRequest() ([]byte, error) {
+
 	fmt.Println("----------------------------")
 	fmt.Println("Status ")
 	fmt.Println("----------------------------")
-
-	tapProtocol.Stack.Push("status")
 
 	statusCommand := StatusCommand{Command{Cmd: "status"}}
 

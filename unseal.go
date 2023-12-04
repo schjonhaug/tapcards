@@ -11,10 +11,10 @@ import (
 func (tapProtocol *TapProtocol) UnsealRequest(cvc string) ([]byte, error) {
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.Stack.Push("status")
+		tapProtocol.Queue.Enqueue("status")
 	}
 
-	tapProtocol.Stack.Push("unseal")
+	tapProtocol.Queue.Enqueue("unseal")
 
 	fmt.Println("----------------------------")
 	fmt.Println("Unseal")

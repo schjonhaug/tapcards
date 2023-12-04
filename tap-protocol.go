@@ -34,7 +34,7 @@ type TapProtocol struct {
 
 	Satscard
 
-	Stack
+	Queue
 }
 
 func (tapProtocol *TapProtocol) authenticate(cvc string, command Command) (*auth, error) {
@@ -158,10 +158,10 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
-	command, ok := tapProtocol.Stack.Pop()
+	command := tapProtocol.Queue.Dequeue()
 
-	if !ok {
-		return nil, fmt.Errorf("stack empty")
+	if command == nil {
+		return nil, fmt.Errorf("queue empty")
 	}
 
 	switch command {
@@ -225,19 +225,32 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	// Check if there are more commands to run
 
-	if !tapProtocol.Stack.IsEmpty() {
+	return tapProtocol.nextCommand()
 
-		switch command {
-		case "read":
-			return tapProtocol.ReadRequest()
-		case "unseal":
-			return tapProtocol.UnsealRequest("123456")
-		default:
-			return nil, errors.New("incorrect command")
-		}
+}
 
+func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
+
+	command := tapProtocol.Queue.Peek()
+
+	fmt.Println("nextCommand: ", command)
+
+	if command == nil {
+		return nil, nil
 	}
 
-	return nil, nil
+	switch command {
+
+	case "status":
+
+		return tapProtocol.statusRequest()
+	case "read":
+
+		return tapProtocol.readRequest()
+
+	default:
+		return nil, errors.New("incorrect command")
+
+	}
 
 }
