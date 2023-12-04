@@ -10,19 +10,27 @@ import (
 
 func (tapProtocol *TapProtocol) UnsealRequest(cvc string) ([]byte, error) {
 
+	fmt.Println("----------------------------")
+	fmt.Println("Unseal")
+	fmt.Println("----------------------------")
+
 	if tapProtocol.currentCardNonce == [16]byte{} {
 		tapProtocol.Queue.Enqueue("status")
 	}
 
 	tapProtocol.Queue.Enqueue("unseal")
 
-	fmt.Println("----------------------------")
-	fmt.Println("Unseal")
-	fmt.Println("----------------------------")
+	tapProtocol.cvc = cvc
+
+	return tapProtocol.nextCommand()
+
+}
+
+func (tapProtocol *TapProtocol) unsealRequest() ([]byte, error) {
 
 	command := Command{Cmd: "unseal"}
 
-	auth, err := tapProtocol.authenticate(cvc, command)
+	auth, err := tapProtocol.authenticate(tapProtocol.cvc, command)
 
 	if err != nil {
 		fmt.Println(err)
@@ -66,7 +74,7 @@ func (tapProtocol *TapProtocol) parseUnsealData(unsealData unsealData) error {
 		return err
 	}
 
-	tapProtocol.currentSlotPrivateKey = wif.String()
+	tapProtocol.Satscard.CurrentSlotPrivateKey = wif.String()
 
 	return nil
 

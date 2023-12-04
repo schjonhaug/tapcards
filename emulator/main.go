@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +12,11 @@ import (
 	tapprotocol "github.com/schjonhaug/coinkite-tap-proto-go"
 	"github.com/skythen/apdu"
 )
+
+func die(err error) {
+	fmt.Println(err)
+	os.Exit(1)
+}
 
 type Transport struct {
 	connection net.Conn
@@ -33,6 +39,11 @@ func (transport *Transport) sendRequest(command []byte) ([]byte, error) {
 
 	wrappedCommand, err := transport.wrapApdu(data)
 
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
 	return wrappedCommand, nil
 
 }
@@ -42,8 +53,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan []byte
 	_, err := r.Read(buf[:])
 
 	if err != nil {
-		print(err)
-		return
+		die(err)
 	}
 
 	channel <- buf
@@ -53,7 +63,7 @@ func (transport *Transport) reader(r io.Reader, command any, channel chan []byte
 func (transport *Transport) Connect() {
 	connection, err := net.Dial("unix", "/tmp/ecard-pipe")
 	if err != nil {
-		log.Fatal(err)
+		die(err)
 	}
 	transport.connection = connection
 }
@@ -75,7 +85,7 @@ func (transport Transport) Send(command []byte, channel chan []byte) {
 
 }
 
-func (transport Transport) unwrapApdu(data []byte) ([]byte, error) {
+func (transport *Transport) unwrapApdu(data []byte) ([]byte, error) {
 
 	capdu, err := apdu.ParseCapdu(data)
 
@@ -83,7 +93,7 @@ func (transport Transport) unwrapApdu(data []byte) ([]byte, error) {
 
 }
 
-func (transport Transport) wrapApdu(data []byte) ([]byte, error) {
+func (transport *Transport) wrapApdu(data []byte) ([]byte, error) {
 
 	//Wrap the response in apdu again
 
@@ -93,28 +103,9 @@ func (transport Transport) wrapApdu(data []byte) ([]byte, error) {
 
 }
 
-func main() {
+func (transport *Transport) loop(request []byte, fn2 func(response []byte) ([]byte, error)) {
 
-	var transport Transport
-
-	transport.Connect()
-	defer transport.Disconnect()
-
-	var tapProtocol tapprotocol.TapProtocol
-	//cvc := "123456"
-
-	argsWithoutProg := os.Args[1:]
-
-	switch argsWithoutProg[0] {
-
-	case "status":
-
-		request, err := tapProtocol.StatusRequest()
-
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+	for request != nil {
 
 		response, err := transport.sendRequest(request)
 
@@ -123,77 +114,56 @@ func main() {
 			return
 		}
 
-		fmt.Println("Response: ", response)
-		tapProtocol.ParseResponse(response)
+		request, err = fn2(response)
 
-		fmt.Println(tapProtocol)
-		fmt.Println(tapProtocol.Satscard)
-
-	case "read":
-
-		for request, _ = tapProtocol.ReadRequest(); request != nil; request, _ = tapProtocol.ParseResponse(response) {
-
-			response, err = transport.sendRequest(request)
-
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			response, err = tapProtocol.ParseResponse(response)
-
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
 
-		fmt.Println(tapProtocol)
-		fmt.Println(tapProtocol.Satscard)
+	}
 
-		/*
-			case "unseal":
+}
 
-				wif, err := tapProtocol.Unseal(cvc)
+func main() {
 
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
+	var transport Transport
 
-				fmt.Println("WIF encoded private key: ", wif)
+	cvc := "123456"
 
-			case "certs":
+	transport.Connect()
+	defer transport.Disconnect()
 
-				err := tapProtocol.Certs()
+	var tapProtocol tapprotocol.TapProtocol
 
-				if err != nil {
-					fmt.Println("Certs error")
-					fmt.Println(err)
-					return
-				}
+	argsWithoutProg := os.Args[1:]
 
-			case "new":
+	var request []byte
+	var err error
 
-				slot, err := tapProtocol.New(cvc)
+	switch argsWithoutProg[0] {
 
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-				fmt.Println("Slot: ", slot)
-
-			case "wait":
-
-				authDelay, err := tapProtocol.Wait()
-
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-
-				fmt.Println("Auth Delay: ", authDelay)*/
+	case "status":
+		request, err = tapProtocol.StatusRequest()
+	case "read":
+		request, err = tapProtocol.ReadRequest()
+	case "unseal":
+		request, err = tapProtocol.UnsealRequest(cvc)
+	case "certs":
+		request, err = tapProtocol.CertsRequest()
 
 	default:
-		fmt.Println(fmt.Errorf("unknown command"))
+		die(errors.New("unknown command"))
 
 	}
+
+	if err != nil {
+		die(err)
+	}
+
+	transport.loop(request, tapProtocol.ParseResponse)
+
+	fmt.Println(tapProtocol)
+	fmt.Println(tapProtocol.Satscard)
 
 }

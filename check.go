@@ -1,25 +1,36 @@
 package tapprotocol
 
-func (tapProtocol *TapProtocol) check(nonce []byte) (*checkData, error) {
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"log"
 
-	return nil, nil
-	/* TODO
-	checkCommand := checkCommand{
-		Command: Command{Cmd: "check"},
-		Nonce:   nonce,
-	}
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
+)
 
-	data, err := tapProtocol.sendReceive(checkCommand)
+func (tapProtocol *TapProtocol) checkRequest() ([]byte, error) {
+
+	nonce, err := tapProtocol.createNonce()
 
 	if err != nil {
 		return nil, err
 	}
 
-	checkData, ok := data.(checkData)
-
-	if !ok {
-		return nil, errors.New("incorrect data type")
+	checkCommand := checkCommand{
+		Command: Command{Cmd: "check"},
+		Nonce:   nonce,
 	}
+
+	return tapProtocol.ApduWrap(checkCommand)
+
+}
+
+func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
+
 	fmt.Println("#########")
 	fmt.Println("# CHECK #")
 	fmt.Println("#########")
@@ -27,6 +38,65 @@ func (tapProtocol *TapProtocol) check(nonce []byte) (*checkData, error) {
 	fmt.Printf("Auth signature: %x\n", checkData.AuthSignature[:])
 	fmt.Printf("Card Nonce: %x\n", checkData.CardNonce[:])
 
-	return &checkData, nil*/
+	message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
+	message = append(message, tapProtocol.appNonce[:]...)
+
+	if tapProtocol.currentSlotPublicKey != [33]byte{} {
+		fmt.Println("Adding current slot public key")
+		message = append(message, tapProtocol.currentSlotPublicKey[:]...)
+	}
+
+	messageDigest := sha256.Sum256([]byte(message))
+
+	r := new(btcec.ModNScalar)
+	r.SetByteSlice(checkData.AuthSignature[0:32])
+
+	s := new(btcec.ModNScalar)
+	s.SetByteSlice(checkData.AuthSignature[32:64])
+
+	signature := ecdsa.NewSignature(r, s)
+
+	publicKey, err := btcec.ParsePubKey(tapProtocol.cardPublicKey[:])
+
+	if err != nil {
+		return err
+	}
+
+	verified := signature.Verify(messageDigest[:], publicKey)
+
+	if !verified {
+		return errors.New("invalid signature certs")
+	}
+
+	fmt.Println("333")
+	for i := 0; i < len(tapProtocol.certificateChain); i++ {
+
+		publicKey, err = tapProtocol.signatureToPublicKey(tapProtocol.certificateChain[i], publicKey)
+
+		if err != nil {
+			return err
+		}
+
+	}
+	fmt.Println("444")
+
+	hexString := "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b" // bogus
+	//hexString := "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1" // real
+
+	// Convert hex string to bytes
+	factoryRootPublicKey, err := hex.DecodeString(hexString)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !bytes.Equal(publicKey.SerializeCompressed(), factoryRootPublicKey) {
+		return errors.New("counterfeit card: invalid factory root public key")
+	} else {
+		fmt.Println("factoryRootPublicKey matched")
+	}
+
+	tapProtocol.currentCardNonce = checkData.CardNonce
+
+	return nil
 
 }

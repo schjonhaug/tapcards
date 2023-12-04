@@ -15,22 +15,25 @@ import (
 // TAP PROTOCOL
 
 type Satscard struct {
-	ActiveSlot     int
-	NumberOfSlots  int
-	Identity       string
-	PaymentAddress string
-	Proto          int
-	Birth          int
-	Version        string
+	ActiveSlot            int
+	NumberOfSlots         int
+	Identity              string
+	PaymentAddress        string
+	Proto                 int
+	Birth                 int
+	Version               string
+	CurrentSlotPrivateKey string
 }
 
 type TapProtocol struct {
-	appNonce              []byte
-	currentCardNonce      [16]byte
-	cardPublicKey         [33]byte
-	sessionKey            [32]byte
-	currentSlotPublicKey  [33]byte
-	currentSlotPrivateKey string
+	appNonce             []byte
+	currentCardNonce     [16]byte
+	cardPublicKey        [33]byte
+	sessionKey           [32]byte
+	currentSlotPublicKey [33]byte
+	certificateChain     [][65]byte
+
+	cvc string
 
 	Satscard
 
@@ -160,6 +163,8 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	command := tapProtocol.Queue.Dequeue()
 
+	fmt.Println("Dequed command: ", command)
+
 	if command == nil {
 		return nil, fmt.Errorf("queue empty")
 	}
@@ -171,9 +176,14 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
+			fmt.Println("Error1: ", err)
+
 			var e ErrorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
+
+				fmt.Println("Error2: ", err)
+
 				return nil, err
 			}
 
@@ -181,7 +191,8 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		tapProtocol.parseStatusData(v)
+		err = tapProtocol.parseStatusData(v)
+
 	case "read":
 
 		var v readData
@@ -198,7 +209,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		tapProtocol.parseReadData(v)
+		err = tapProtocol.parseReadData(v)
 	case "unseal":
 
 		var v unsealData
@@ -215,11 +226,50 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		tapProtocol.parseUnsealData(v)
+		err = tapProtocol.parseUnsealData(v)
+	case "certs":
+
+		var v certsData
+
+		if err := decMode.Unmarshal(bytes, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(bytes, &e); err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("%d: %v", e.Code, e.Error)
+
+		}
+
+		err = tapProtocol.parseCertsData(v)
+	case "check":
+
+		var v checkData
+
+		if err := decMode.Unmarshal(bytes, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(bytes, &e); err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("%d: %v", e.Code, e.Error)
+
+		}
+
+		err = tapProtocol.parseCheckData(v)
 
 	default:
 
-		return nil, errors.New("incorrect command")
+		return nil, errors.New("incorrect command found in queue")
+
+	}
+
+	if err != nil {
+		return nil, err
 
 	}
 
@@ -233,20 +283,28 @@ func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 
 	command := tapProtocol.Queue.Peek()
 
-	fmt.Println("nextCommand: ", command)
-
 	if command == nil {
+		fmt.Println("No more commands")
+
+		tapProtocol.cvc = ""
+
 		return nil, nil
 	}
+
+	fmt.Println("nextCommand: ", command)
 
 	switch command {
 
 	case "status":
-
 		return tapProtocol.statusRequest()
 	case "read":
-
 		return tapProtocol.readRequest()
+	case "unseal":
+		return tapProtocol.unsealRequest()
+	case "certs":
+		return tapProtocol.certsRequest()
+	case "check":
+		return tapProtocol.checkRequest()
 
 	default:
 		return nil, errors.New("incorrect command")

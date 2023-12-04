@@ -2,137 +2,174 @@ package tapprotocol
 
 import (
 	"crypto/sha256"
+	"fmt"
 
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
-func (tapProtocol *TapProtocol) Certs() error {
+func (tapProtocol *TapProtocol) CertsRequest() ([]byte, error) {
 
-	//TODO tapProtocol.transport.Connect()
-	//TODO defer tapProtocol.transport.Disconnect()
+	fmt.Println("------------")
+	fmt.Println("Certs")
+	fmt.Println("------------")
 
-	return tapProtocol.certs()
+	if tapProtocol.currentCardNonce == [16]byte{} {
+		tapProtocol.Queue.Enqueue("status")
+	}
+
+	tapProtocol.Queue.Enqueue("certs")
+	tapProtocol.Queue.Enqueue("read")
+	tapProtocol.Queue.Enqueue("check")
+
+	return tapProtocol.nextCommand()
 
 }
 
-func (tapProtocol *TapProtocol) certs() error {
-	/*
-		if tapProtocol.currentCardNonce == [16]byte{} {
-			// TODO		tapProtocol.status()
-		}
+func (tapProtocol *TapProtocol) certsRequest() ([]byte, error) {
 
-		//TODO tapProtocol.read()
+	certsCommand := certsCommand{
+		Command{Cmd: "certs"},
+	}
 
-		//TODO
+	return tapProtocol.ApduWrap(certsCommand)
+}
 
-		fmt.Println("------------")
-		fmt.Println("Certs")
-		fmt.Println("------------")
+func (tapProtocol *TapProtocol) parseCertsData(certsData certsData) error {
 
-		certsCommand := certsCommand{
-			Command{Cmd: "certs"},
-		}
+	fmt.Println()
+	fmt.Println("#########")
+	fmt.Println("# CERTS #")
+	fmt.Println("#########")
 
-		data, err := tapProtocol.sendReceive(certsCommand)
+	tapProtocol.certificateChain = certsData.CertificateChain
 
-		if err != nil {
-			return err
-		}
-
-		certsData, ok := data.(certsData)
-
-		if !ok {
-			return errors.New("incorrect data type")
-		}
-		fmt.Println()
-		fmt.Println("#########")
-		fmt.Println("# CERTS #")
-		fmt.Println("#########")
-
-		nonce, err := tapProtocol.createNonce()
-
-		if err != nil {
-			return err
-		}
-
-		checkData, err := tapProtocol.check(nonce)
-
-		if err != nil {
-			return err
-		}
-
-		message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
-		message = append(message, nonce[:]...)
-
-		if tapProtocol.currentSlotPublicKey != [33]byte{} {
-			fmt.Println("Adding current slot public key")
-			message = append(message, tapProtocol.currentSlotPublicKey[:]...)
-		}
-
-		messageDigest := sha256.Sum256([]byte(message))
-
-		r := new(btcec.ModNScalar)
-		r.SetByteSlice(checkData.AuthSignature[0:32])
-
-		s := new(btcec.ModNScalar)
-		s.SetByteSlice(checkData.AuthSignature[32:])
-
-		signature := ecdsa.NewSignature(r, s)
-
-		publicKey, err := btcec.ParsePubKey(tapProtocol.cardPublicKey[:])
-
-		if err != nil {
-			return err
-		}
-
-		verified := signature.Verify(messageDigest[:], publicKey)
-
-		if !verified {
-			return errors.New("invalid signature certs")
-		}
-
-		for i := 0; i < len(certsData.CertificateChain); i++ {
-
-			publicKey, err = tapProtocol.signatureToPublicKey(certsData.CertificateChain[i], publicKey)
-
-			if err != nil {
-				return err
-			}
-
-		}
-
-		hexString := "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b" // bogus
-		//hexString := "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1" // real
-
-		// Convert hex string to bytes
-		factoryRootPublicKey, err := hex.DecodeString(hexString)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if !bytes.Equal(publicKey.SerializeCompressed(), factoryRootPublicKey) {
-			return errors.New("counterfeit card: invalid factory root public key")
-		} else {
-			fmt.Println("factoryRootPublicKey matched")
-		}
-
-		tapProtocol.currentCardNonce = checkData.CardNonce
-	*/
 	return nil
 
 }
 
 func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicKey *secp256k1.PublicKey) (*secp256k1.PublicKey, error) {
 
-	messageDigest := sha256.Sum256(publicKey.SerializeCompressed())
-
-	pubKey, _, err := ecdsa.RecoverCompact(signature[:], messageDigest[:])
+	recId, err := tapProtocol.recID(signature[:])
 
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Println("RecID:", recId)
+
+	//	EcdsaRecoverableSignatureParseCompact
+
+	//	newSig := append(signature[1:], []byte{recId}...)
+
+	newSig := append([]byte{recId}, signature[1:]...)
+	fmt.Println("newSig:", newSig)
+	/*
+
+		r := new(btcec.ModNScalar)
+		r.SetByteSlice(readData.Signature[0:32])
+
+		s := new(btcec.ModNScalar)
+		s.SetByteSlice(readData.Signature[32:])
+	*/
+
+	r := new(btcec.ModNScalar)
+	r.SetByteSlice(signature[1:33])
+
+	s := new(btcec.ModNScalar)
+	s.SetByteSlice(signature[33:64])
+
+	signature3 := ecdsa.NewSignature(r, s)
+
+	fmt.Println("Signature 3:", signature3)
+
+	/*signature2, err := ecdsa.ParseSignature(newSig[:])
+
+	if err != nil {
+		fmt.Println("PARSE DER SIGNATURE ERROR")
+		return nil, err
+	}*/
+
+	newSig2 := signature3.Serialize()
+
+	fmt.Println("New signature:", newSig2)
+
+	messageDigest := sha256.Sum256(publicKey.SerializeUncompressed())
+
+	//publicKey2, compressed, err := ecdsa.RecoverCompact(signature[:], messageDigest[:])
+
+	//newSig, err := tapProtocol.prependIntToBytes(signature[:64], recId)
+
+	//	messageDigest := sha256.Sum256(publicKey.SerializeCompressed())
+
+	pubKey, _, err := ecdsa.RecoverCompact(newSig[:], messageDigest[:])
+
+	if err != nil {
+		fmt.Println("RECOVER COMPACT ERROR")
+		return nil, err
+	}
+
 	return pubKey, nil
 
+}
+
+func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
+	if len(signature) == 0 {
+		return 0, fmt.Errorf("empty signature")
+	}
+
+	firstByte := signature[0]
+	fmt.Println("First byte before:", firstByte)
+
+	switch {
+	case firstByte >= 39 && firstByte <= 42:
+		return byte(firstByte - 39), nil
+	case firstByte >= 27 && firstByte <= 30:
+		return byte(firstByte - 27), nil
+	default:
+		return 0, fmt.Errorf("invalid first byte value in signature")
+	}
+
+	/*
+
+			int header_num = header & 0xff;
+		    if (header_num >= 39) {
+		      header_num -= 12;
+		    } else if (header_num >= 35) {
+		      header_num -= 8;
+		    } else if (header_num >= 31) {
+		      header_num -= 4;
+		    }
+		    int rec_id = header_num - 27;
+		    return rec_id;
+
+	*/
+
+	switch {
+	case firstByte >= 39:
+		firstByte -= 12
+
+	case firstByte >= 35:
+		firstByte -= 8
+
+	case firstByte >= 31:
+		firstByte -= 4
+	}
+
+	firstByte -= 27
+
+	fmt.Println("First byte after:", int(firstByte))
+
+	return firstByte, nil
+
+	/*
+		switch {
+		case firstByte >= 39 && firstByte <= 42:
+			return int(firstByte - 39), nil
+		case firstByte >= 27 && firstByte <= 30:
+			return int(firstByte - 27), nil
+		default:
+			return 0, fmt.Errorf("invalid first byte value in signature")
+		}*/
 }

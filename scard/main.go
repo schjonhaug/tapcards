@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -104,55 +105,63 @@ func main() {
 			die(err)
 		}
 
-		fmt.Println(tapProtocol.Satscard)
-
-		// READ
-
-		cmd, err = tapProtocol.ReadRequest()
-
-		if err != nil {
-			die(err)
-		}
-
-		fmt.Println("Transmit:")
-		fmt.Printf("\tc-apdu: % x\n", cmd)
-		rsp, err = card.Transmit(cmd)
-		if err != nil {
-			die(err)
-		}
-		fmt.Printf("\tr-apdu: % x\n", rsp)
-
-		cmd, err = tapProtocol.ParseResponse(rsp)
-
-		if err != nil {
-			die(err)
-		}
+		fmt.Println("cmd:", cmd)
 
 		fmt.Println(tapProtocol.Satscard)
 
-		// UNSEAL
+		// READ FROM COMMAND LINE
 
-		cmd, err = tapProtocol.UnsealRequest("123456")
+		argsWithoutProg := os.Args[1:]
+
+		var request []byte
+
+		switch argsWithoutProg[0] {
+
+		case "status":
+			request, err = tapProtocol.StatusRequest()
+		case "read":
+			request, err = tapProtocol.ReadRequest()
+		case "unseal":
+			request, err = tapProtocol.UnsealRequest(argsWithoutProg[1])
+		case "certs":
+			request, err = tapProtocol.CertsRequest()
+
+		default:
+			die(errors.New("unknown command"))
+
+		}
 
 		if err != nil {
 			die(err)
 		}
 
-		fmt.Println("Transmit:")
-		fmt.Printf("\tc-apdu: % x\n", cmd)
-		rsp, err = card.Transmit(cmd)
-		if err != nil {
-			die(err)
-		}
-		fmt.Printf("\tr-apdu: % x\n", rsp)
+		loop(card, request, tapProtocol.ParseResponse)
 
-		cmd, err = tapProtocol.ParseResponse(rsp)
-
-		if err != nil {
-			die(err)
-		}
-
+		fmt.Println(tapProtocol)
 		fmt.Println(tapProtocol.Satscard)
 
 	}
+
+}
+
+func loop(card *scard.Card, request []byte, fn2 func(response []byte) ([]byte, error)) {
+
+	for request != nil {
+
+		response, err := card.Transmit(request)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		request, err = fn2(response)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+	}
+
 }
