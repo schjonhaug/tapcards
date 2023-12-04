@@ -20,7 +20,7 @@ func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
 func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.status()
+		// TODO	tapProtocol.status()
 	}
 
 	fmt.Println("----------------------------")

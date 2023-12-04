@@ -17,7 +17,7 @@ func (tapProtocol *TapProtocol) New(cvc string) (int, error) {
 func (tapProtocol *TapProtocol) new(cvc string) (int, error) {
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.status()
+		// TODO tapProtocol.status()
 	}
 
 	// Check if we can open the next slot

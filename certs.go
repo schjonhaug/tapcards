@@ -25,10 +25,10 @@ func (tapProtocol *TapProtocol) Certs() error {
 func (tapProtocol *TapProtocol) certs() error {
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.status()
+		// TODO		tapProtocol.status()
 	}
 
-	tapProtocol.read()
+	//TODO tapProtocol.read()
 
 	//TODO
 

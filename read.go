@@ -11,33 +11,17 @@ import (
 	"github.com/btcsuite/btcd/btcutil/bech32"
 )
 
-// READ
-// read a SATSCARD’s current payment address
-func (tapProtocol *TapProtocol) Read() (string, error) {
-
-	tapProtocol.transport.Connect()
-	defer tapProtocol.transport.Disconnect()
-
-	readData, err := tapProtocol.read()
-	if err != nil {
-		return "", err
-	}
-
-	return paymentAddress(readData)
-
-}
-
-// READ
-// read a SATSCARD’s current payment address
-func (tapProtocol *TapProtocol) read() (*readData, error) {
-
-	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.status()
-	}
+func (tapProtocol *TapProtocol) ReadRequest() ([]byte, error) {
 
 	fmt.Println("----------------------------")
 	fmt.Println("Read ")
 	fmt.Println("----------------------------")
+
+	if tapProtocol.currentCardNonce == [16]byte{} {
+		tapProtocol.Stack.Push("status")
+	}
+
+	tapProtocol.Stack.Push("read")
 
 	command := Command{Cmd: "read"}
 
@@ -52,17 +36,13 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 		Nonce:   nonce,
 	}
 
-	data, err := tapProtocol.sendReceive(readCommand)
+	return tapProtocol.ApduWrap(readCommand)
 
-	if err != nil {
-		return nil, err
-	}
+}
 
-	readData, ok := data.(readData)
-
-	if !ok {
-		return nil, errors.New("incorrect data type")
-	}
+// READ
+// read a SATSCARD’s current payment address
+func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
 
 	fmt.Println("########")
 	fmt.Println("# READ #")
@@ -89,13 +69,13 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 
 	publicKey, err := btcec.ParsePubKey(readData.PublicKey[:])
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	verified := signature.Verify(messageDigest[:], publicKey)
 
 	if !verified {
-		return nil, errors.New("invalid signature read")
+		return errors.New("invalid signature read")
 	}
 
 	// Save the current slot public key
@@ -106,12 +86,12 @@ func (tapProtocol *TapProtocol) read() (*readData, error) {
 	paymentAddress, err := paymentAddress(&readData)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	tapProtocol.Satscard.PaymentAddress = paymentAddress
 
-	return &readData, nil
+	return nil
 
 }
 

@@ -6,56 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/fxamacker/cbor/v2"
-	"github.com/skythen/apdu"
 )
 
 func (tapProtocol *TapProtocol) StatusRequest() ([]byte, error) {
 
-	statusCommand := StatusCommand{Command{Cmd: "status"}}
-
-	cbor_serialized, err := cbor.Marshal(statusCommand)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	capdu := apdu.Capdu{Cla: 0x00, Ins: 0xCB, Data: cbor_serialized}
-
-	return capdu.Bytes()
-
-}
-
-// STATUS
-func (tapProtocol *TapProtocol) Status() error {
-
-	tapProtocol.transport.Connect()
-	defer tapProtocol.transport.Disconnect()
-
-	return tapProtocol.status()
-
-}
-
-func (tapProtocol *TapProtocol) status() error {
-
-	fmt.Println("----------------------------")
-	fmt.Println("Status")
-	fmt.Println("----------------------------")
+	tapProtocol.Stack.Push("status")
 
 	statusCommand := StatusCommand{Command{Cmd: "status"}}
 
-	data, err := tapProtocol.sendReceive(statusCommand)
+	return tapProtocol.ApduWrap(statusCommand)
 
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+}
 
-	statusData, ok := data.(StatusData)
+func (tapProtocol *TapProtocol) parseStatusData(statusData StatusData) error {
 
-	if !ok {
-		return errors.New("incorrect data type")
-	}
 	fmt.Println("##########")
 	fmt.Println("# STATUS #")
 	fmt.Println("##########")

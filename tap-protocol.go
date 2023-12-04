@@ -3,11 +3,13 @@ package tapprotocol
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/fxamacker/cbor/v2"
 )
 
 // TAP PROTOCOL
@@ -32,6 +34,8 @@ type TapProtocol struct {
 	transport Transport
 
 	Satscard
+
+	Stack
 }
 
 func (tapProtocol *TapProtocol) authenticate(cvc string, command Command) (*auth, error) {
@@ -162,5 +166,80 @@ func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
 		return data, nil
 
 	}
+
+}
+
+func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
+
+	bytes, err := tapProtocol.ApduUnwrap(response)
+
+	if err != nil {
+		return nil, err
+	}
+
+	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
+
+	command, ok := tapProtocol.Stack.Pop()
+
+	if !ok {
+		return nil, fmt.Errorf("stack empty")
+	}
+
+	switch command {
+	case "status":
+
+		var v StatusData
+
+		if err := decMode.Unmarshal(bytes, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(bytes, &e); err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("%d: %v", e.Code, e.Error)
+
+		}
+
+		tapProtocol.parseStatusData(v)
+	case "read":
+
+		var v readData
+
+		if err := decMode.Unmarshal(bytes, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(bytes, &e); err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("%d: %v", e.Code, e.Error)
+
+		}
+
+		tapProtocol.parseReadData(v)
+
+	default:
+
+		return nil, errors.New("incorrect command")
+
+	}
+
+	// Check if there are more commands to run
+
+	if !tapProtocol.Stack.IsEmpty() {
+
+		switch command {
+		case "read":
+			return tapProtocol.ReadRequest()
+		default:
+			return nil, errors.New("incorrect command")
+		}
+
+	}
+
+	return nil, nil
 
 }

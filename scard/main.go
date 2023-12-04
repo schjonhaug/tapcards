@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 
 	"github.com/ebfe/scard"
-	"github.com/fxamacker/cbor/v2"
-	"github.com/skythen/apdu"
 
 	tapprotocol "github.com/schjonhaug/coinkite-tap-proto-go"
 )
@@ -85,7 +82,13 @@ func main() {
 		fmt.Printf("\treader: %s\n\tstate: %x\n\tactive protocol: %x\n\tatr: % x\n",
 			status.Reader, status.State, status.ActiveProtocol, status.Atr)
 
-		cmd := cmd()
+		// INIT
+
+		cmd, err := tapProtocol.InitRequest()
+
+		if err != nil {
+			die(err)
+		}
 
 		fmt.Println("Transmit:")
 		fmt.Printf("\tc-apdu: % x\n", cmd)
@@ -95,46 +98,20 @@ func main() {
 		}
 		fmt.Printf("\tr-apdu: % x\n", rsp)
 
-		rapdu, err := apdu.ParseRapdu(rsp)
+		cmd, err = tapProtocol.ParseResponse(rsp)
 
 		if err != nil {
 			die(err)
-
 		}
 
-		fmt.Println("SW1:", hex.EncodeToString([]byte{rapdu.SW1}))
-		fmt.Println("SW2:", hex.EncodeToString([]byte{rapdu.SW2}))
+		fmt.Println(tapProtocol.Satscard)
 
-		decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
+		// READ
 
-		var v tapprotocol.StatusData
-
-		if err := decMode.Unmarshal(rapdu.Data, &v); err != nil {
-
-			var e tapprotocol.ErrorData
-
-			if err := decMode.Unmarshal(rapdu.Data, &e); err != nil {
-				fmt.Println("error:", err)
-				//channel <- err
-			}
-
-			fmt.Println(e)
-
-			//channel <- e
-
-		}
-
-		fmt.Println(v)
-
-		//	channel <- v
-
-		// API
-
-		cmd, err = tapProtocol.StatusRequest()
+		cmd, err = tapProtocol.ReadRequest()
 
 		if err != nil {
 			die(err)
-
 		}
 
 		fmt.Println("Transmit:")
@@ -145,52 +122,13 @@ func main() {
 		}
 		fmt.Printf("\tr-apdu: % x\n", rsp)
 
-		rapdu, err = apdu.ParseRapdu(rsp)
+		cmd, err = tapProtocol.ParseResponse(rsp)
 
 		if err != nil {
 			die(err)
-
 		}
 
-		fmt.Println("SW1:", hex.EncodeToString([]byte{rapdu.SW1}))
-
-		var w tapprotocol.StatusData
-
-		if err := decMode.Unmarshal(rapdu.Data, &w); err != nil {
-
-			var e tapprotocol.ErrorData
-
-			if err := decMode.Unmarshal(rapdu.Data, &e); err != nil {
-				fmt.Println("error:", err)
-				//channel <- err
-			}
-
-			fmt.Println(e)
-
-			//channel <- e
-
-		}
-
-		fmt.Println(w)
+		fmt.Println(tapProtocol.Satscard)
 
 	}
-}
-
-func cmd() []byte {
-
-	//var cmd = []byte{0x00, 0xa4, 0x04, 0x00, 0x0f}
-	data := []byte{0xf0, 'C', 'o', 'i', 'n', 'k', 'i', 't', 'e', 'C', 'A', 'R', 'D', 'v', '1'}
-
-	//cmd = append(cmd, data[:]...)
-	capdu := apdu.Capdu{Cla: 0x00, Ins: 0xa4, P1: 0x04, Data: data}
-
-	bytes, err := capdu.Bytes()
-
-	if err != nil {
-
-		fmt.Println("error:", err)
-	}
-	fmt.Println("bytes:", bytes)
-
-	return bytes
 }
