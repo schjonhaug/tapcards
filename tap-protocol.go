@@ -32,8 +32,6 @@ type TapProtocol struct {
 	currentSlotPublicKey  [33]byte
 	currentSlotPrivateKey string
 
-	transport Transport
-
 	Satscard
 
 	Stack
@@ -150,26 +148,6 @@ func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
 
 }
 
-func (tapProtocol *TapProtocol) sendReceive(command any) (any, error) {
-
-	channel := make(chan any)
-
-	go tapProtocol.transport.Send(command, channel)
-
-	data := <-channel
-
-	switch data := data.(type) {
-
-	case ErrorData:
-		return nil, fmt.Errorf("%d: %v", data.Code, data.Error)
-
-	default:
-		return data, nil
-
-	}
-
-}
-
 func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	bytes, err := tapProtocol.ApduUnwrap(response)
@@ -252,6 +230,8 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 		switch command {
 		case "read":
 			return tapProtocol.ReadRequest()
+		case "unseal":
+			return tapProtocol.UnsealRequest("123456")
 		default:
 			return nil, errors.New("incorrect command")
 		}

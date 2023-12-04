@@ -1,12 +1,9 @@
 package tapprotocol
 
-import (
-	"errors"
-	"fmt"
-)
-
 func (tapProtocol *TapProtocol) check(nonce []byte) (*checkData, error) {
 
+	return nil, nil
+	/* TODO
 	checkCommand := checkCommand{
 		Command: Command{Cmd: "check"},
 		Nonce:   nonce,
@@ -30,6 +27,6 @@ func (tapProtocol *TapProtocol) check(nonce []byte) (*checkData, error) {
 	fmt.Printf("Auth signature: %x\n", checkData.AuthSignature[:])
 	fmt.Printf("Card Nonce: %x\n", checkData.CardNonce[:])
 
-	return &checkData, nil
+	return &checkData, nil*/
 
 }
