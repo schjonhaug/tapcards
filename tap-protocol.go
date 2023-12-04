@@ -25,11 +25,12 @@ type Satscard struct {
 }
 
 type TapProtocol struct {
-	appNonce             []byte
-	currentCardNonce     [16]byte
-	cardPublicKey        [33]byte
-	sessionKey           [32]byte
-	currentSlotPublicKey [33]byte
+	appNonce              []byte
+	currentCardNonce      [16]byte
+	cardPublicKey         [33]byte
+	sessionKey            [32]byte
+	currentSlotPublicKey  [33]byte
+	currentSlotPrivateKey string
 
 	transport Transport
 
@@ -220,6 +221,23 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 		}
 
 		tapProtocol.parseReadData(v)
+	case "unseal":
+
+		var v unsealData
+
+		if err := decMode.Unmarshal(bytes, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(bytes, &e); err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("%d: %v", e.Code, e.Error)
+
+		}
+
+		tapProtocol.parseUnsealData(v)
 
 	default:
 

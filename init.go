@@ -4,7 +4,7 @@ import (
 	"github.com/skythen/apdu"
 )
 
-func (tapProtocol *TapProtocol) InitRequest() ([]byte, error) {
+func (tapProtocol *TapProtocol) InitRequest() (cmd []byte, error error) {
 
 	// This ISO Applet is like doing a status
 	tapProtocol.Stack.Push("status")
@@ -13,11 +13,6 @@ func (tapProtocol *TapProtocol) InitRequest() ([]byte, error) {
 
 	capdu := apdu.Capdu{Cla: 0x00, Ins: 0xa4, P1: 0x04, Data: data}
 
-	bytes, err := capdu.Bytes()
-
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
+	return capdu.Bytes()
 
 }

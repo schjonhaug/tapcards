@@ -1,7 +1,6 @@
 package tapprotocol
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -9,19 +8,13 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 )
 
-func (tapProtocol *TapProtocol) Unseal(cvc string) (string, error) {
-
-	tapProtocol.transport.Connect()
-	defer tapProtocol.transport.Disconnect()
-
-	return tapProtocol.unseal(cvc)
-
-}
-func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
+func (tapProtocol *TapProtocol) UnsealRequest(cvc string) ([]byte, error) {
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		// TODO	tapProtocol.status()
+		tapProtocol.Stack.Push("status")
 	}
+
+	tapProtocol.Stack.Push("unseal")
 
 	fmt.Println("----------------------------")
 	fmt.Println("Unseal")
@@ -33,7 +26,7 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return nil, err
 	}
 
 	unsealCommand := unsealCommand{
@@ -42,17 +35,12 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 		Slot:    tapProtocol.Satscard.ActiveSlot,
 	}
 
-	data, err := tapProtocol.sendReceive(unsealCommand)
+	return tapProtocol.ApduWrap(unsealCommand)
 
-	if err != nil {
-		return "", err
-	}
+}
 
-	unsealData, ok := data.(unsealData)
+func (tapProtocol *TapProtocol) parseUnsealData(unsealData unsealData) error {
 
-	if !ok {
-		return "", errors.New("incorrect data type")
-	}
 	fmt.Println("##########")
 	fmt.Println("# UNSEAL #")
 	fmt.Println("##########")
@@ -75,9 +63,11 @@ func (tapProtocol *TapProtocol) unseal(cvc string) (string, error) {
 	wif, err := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return wif.String(), nil
+	tapProtocol.currentSlotPrivateKey = wif.String()
+
+	return nil
 
 }

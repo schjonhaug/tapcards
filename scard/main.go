@@ -130,5 +130,29 @@ func main() {
 
 		fmt.Println(tapProtocol.Satscard)
 
+		// UNSEAL
+
+		cmd, err = tapProtocol.UnsealRequest("123456")
+
+		if err != nil {
+			die(err)
+		}
+
+		fmt.Println("Transmit:")
+		fmt.Printf("\tc-apdu: % x\n", cmd)
+		rsp, err = card.Transmit(cmd)
+		if err != nil {
+			die(err)
+		}
+		fmt.Printf("\tr-apdu: % x\n", rsp)
+
+		cmd, err = tapProtocol.ParseResponse(rsp)
+
+		if err != nil {
+			die(err)
+		}
+
+		fmt.Println(tapProtocol.Satscard)
+
 	}
 }
