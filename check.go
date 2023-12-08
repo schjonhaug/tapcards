@@ -77,8 +77,8 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 
 	}
 
-	//hexString := "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b" // bogus
-	hexString := "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1" // real
+	hexString := "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b" // bogus
+	//hexString := "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1" // real
 
 	// Convert hex string to bytes
 	factoryRootPublicKeyBytes, err := hex.DecodeString(hexString)

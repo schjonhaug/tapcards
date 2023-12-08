@@ -67,7 +67,7 @@ func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicK
 	//newSig := append(signature[1:], []byte{recId}...)
 	fmt.Println("newSig:", newSig)
 
-	pubKey, _, err := ecdsa.RecoverCompact(signature[:], messageDigest[:])
+	pubKey, _, err := ecdsa.RecoverCompact(newSig[:], messageDigest[:])
 
 	return pubKey, err
 
@@ -80,6 +80,15 @@ func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
 
 	firstByte := signature[0]
 	fmt.Println("First byte before:", firstByte)
+
+	switch {
+	case firstByte >= 39 && firstByte <= 42:
+		return byte(firstByte - 12), nil
+	case firstByte >= 27 && firstByte <= 30:
+		return byte(firstByte), nil
+	default:
+		return firstByte, nil // fmt.Errorf("invalid first byte value in signature")
+	}
 	/*
 		switch {
 		case firstByte >= 39 && firstByte <= 42:
@@ -88,8 +97,8 @@ func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
 			return byte(firstByte - 27), nil
 		default:
 			return 0, fmt.Errorf("invalid first byte value in signature")
-		}
-	*/
+		}*/
+
 	/*
 
 			int header_num = header & 0xff;
@@ -105,7 +114,7 @@ func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
 
 	*/
 
-	switch {
+	/*switch {
 	case firstByte >= 39:
 		firstByte -= 12
 
@@ -120,7 +129,7 @@ func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
 
 	fmt.Println("First byte after:", int(firstByte))
 
-	return firstByte, nil
+	return firstByte, nil*/
 
 	/*
 		switch {
