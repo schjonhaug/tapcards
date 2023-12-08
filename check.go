@@ -1,7 +1,6 @@
 package tapprotocol
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -78,17 +77,27 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 
 	}
 
-	hexString := "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b" // bogus
-	//hexString := "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1" // real
+	//hexString := "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b" // bogus
+	hexString := "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1" // real
 
 	// Convert hex string to bytes
-	factoryRootPublicKey, err := hex.DecodeString(hexString)
+	factoryRootPublicKeyBytes, err := hex.DecodeString(hexString)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if !bytes.Equal(publicKey.SerializeCompressed(), factoryRootPublicKey) {
+	factoryRootPublicKey, err := btcec.ParsePubKey(factoryRootPublicKeyBytes)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("factoryRootPublicKey: %x\n", factoryRootPublicKey.SerializeCompressed())
+	fmt.Printf("publicKey:            %x\n", publicKey.SerializeCompressed())
+
+	if !factoryRootPublicKey.IsEqual(publicKey) {
 		return errors.New("counterfeit card: invalid factory root public key")
+
 	} else {
 		fmt.Println("factoryRootPublicKey matched")
 	}

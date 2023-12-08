@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	etherium "github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
@@ -51,6 +51,10 @@ func (tapProtocol *TapProtocol) parseCertsData(certsData certsData) error {
 
 func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicKey *secp256k1.PublicKey) (*secp256k1.PublicKey, error) {
 
+	fmt.Println("Signature:", signature[:])
+
+	messageDigest := sha256.Sum256(publicKey.SerializeCompressed())
+
 	recId, err := tapProtocol.recID(signature[:])
 
 	if err != nil {
@@ -59,30 +63,13 @@ func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicK
 
 	fmt.Println("RecID:", recId)
 
-	//newSig := append([]byte{recId}, signature[1:]...)
-	newSig := append(signature[1:], []byte{recId}...)
+	newSig := append([]byte{recId}, signature[1:]...)
+	//newSig := append(signature[1:], []byte{recId}...)
 	fmt.Println("newSig:", newSig)
 
-	messageDigest := sha256.Sum256(publicKey.SerializeUncompressed())
+	pubKey, _, err := ecdsa.RecoverCompact(signature[:], messageDigest[:])
 
-	bais, err := etherium.RecoverPubkey(messageDigest[:], newSig)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return secp256k1.ParsePubKey(bais)
-
-	/*os.Exit(1)
-
-	pubKey, _, err := ecdsa.RecoverCompact(newSig[:], messageDigest[:])
-
-	if err != nil {
-		fmt.Println("RECOVER COMPACT ERROR")
-		return nil, err
-	}
-
-	return pubKey, nil*/
+	return pubKey, err
 
 }
 
