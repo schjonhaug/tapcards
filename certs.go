@@ -64,8 +64,6 @@ func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicK
 	fmt.Println("RecID:", recId)
 
 	newSig := append([]byte{recId}, signature[1:]...)
-	//newSig := append(signature[1:], []byte{recId}...)
-	fmt.Println("newSig:", newSig)
 
 	pubKey, _, err := ecdsa.RecoverCompact(newSig[:], messageDigest[:])
 
@@ -73,6 +71,13 @@ func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicK
 
 }
 
+/*
+*
+The first byte of each signature has rec_id encoded according to BIP-137.
+* If the value is between 39 to 42 [39, 42], subtract 39 to get rec_id within the range of 0 to 3 [0, 3].
+* If the value is [27, 30], subtract 27 to get rec_id within the range of [0, 3].
+* Other values should not occur.
+*/
 func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
 	if len(signature) == 0 {
 		return 0, fmt.Errorf("empty signature")
@@ -81,63 +86,16 @@ func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
 	firstByte := signature[0]
 	fmt.Println("First byte before:", firstByte)
 
+	//ecdsa.RecoverCompact subtracts 27 from the recID, so we need to offset it
+	offset := 27
+
 	switch {
 	case firstByte >= 39 && firstByte <= 42:
-		return byte(firstByte - 12), nil
+		return firstByte - 39 + byte(offset), nil
 	case firstByte >= 27 && firstByte <= 30:
-		return byte(firstByte), nil
+		return firstByte - 27 + byte(offset), nil
 	default:
-		return firstByte, nil // fmt.Errorf("invalid first byte value in signature")
-	}
-	/*
-		switch {
-		case firstByte >= 39 && firstByte <= 42:
-			return byte(firstByte - 39), nil
-		case firstByte >= 27 && firstByte <= 30:
-			return byte(firstByte - 27), nil
-		default:
-			return 0, fmt.Errorf("invalid first byte value in signature")
-		}*/
-
-	/*
-
-			int header_num = header & 0xff;
-		    if (header_num >= 39) {
-		      header_num -= 12;
-		    } else if (header_num >= 35) {
-		      header_num -= 8;
-		    } else if (header_num >= 31) {
-		      header_num -= 4;
-		    }
-		    int rec_id = header_num - 27;
-		    return rec_id;
-
-	*/
-
-	/*switch {
-	case firstByte >= 39:
-		firstByte -= 12
-
-	case firstByte >= 35:
-		firstByte -= 8
-
-	case firstByte >= 31:
-		firstByte -= 4
+		return firstByte, nil
 	}
 
-	firstByte -= 27
-
-	fmt.Println("First byte after:", int(firstByte))
-
-	return firstByte, nil*/
-
-	/*
-		switch {
-		case firstByte >= 39 && firstByte <= 42:
-			return int(firstByte - 39), nil
-		case firstByte >= 27 && firstByte <= 30:
-			return int(firstByte - 27), nil
-		default:
-			return 0, fmt.Errorf("invalid first byte value in signature")
-		}*/
 }
