@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/btcsuite/btcd/btcec/v2"
-	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	etherium "github.com/ethereum/go-ethereum/crypto/secp256k1"
+
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
@@ -59,49 +59,21 @@ func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicK
 
 	fmt.Println("RecID:", recId)
 
-	//	EcdsaRecoverableSignatureParseCompact
-
-	//	newSig := append(signature[1:], []byte{recId}...)
-
-	newSig := append([]byte{recId}, signature[1:]...)
+	//newSig := append([]byte{recId}, signature[1:]...)
+	newSig := append(signature[1:], []byte{recId}...)
 	fmt.Println("newSig:", newSig)
-	/*
-
-		r := new(btcec.ModNScalar)
-		r.SetByteSlice(readData.Signature[0:32])
-
-		s := new(btcec.ModNScalar)
-		s.SetByteSlice(readData.Signature[32:])
-	*/
-
-	r := new(btcec.ModNScalar)
-	r.SetByteSlice(signature[1:33])
-
-	s := new(btcec.ModNScalar)
-	s.SetByteSlice(signature[33:64])
-
-	signature3 := ecdsa.NewSignature(r, s)
-
-	fmt.Println("Signature 3:", signature3)
-
-	/*signature2, err := ecdsa.ParseSignature(newSig[:])
-
-	if err != nil {
-		fmt.Println("PARSE DER SIGNATURE ERROR")
-		return nil, err
-	}*/
-
-	newSig2 := signature3.Serialize()
-
-	fmt.Println("New signature:", newSig2)
 
 	messageDigest := sha256.Sum256(publicKey.SerializeUncompressed())
 
-	//publicKey2, compressed, err := ecdsa.RecoverCompact(signature[:], messageDigest[:])
+	bais, err := etherium.RecoverPubkey(messageDigest[:], newSig)
 
-	//newSig, err := tapProtocol.prependIntToBytes(signature[:64], recId)
+	if err != nil {
+		return nil, err
+	}
 
-	//	messageDigest := sha256.Sum256(publicKey.SerializeCompressed())
+	return secp256k1.ParsePubKey(bais)
+
+	/*os.Exit(1)
 
 	pubKey, _, err := ecdsa.RecoverCompact(newSig[:], messageDigest[:])
 
@@ -110,7 +82,7 @@ func (tapProtocol *TapProtocol) signatureToPublicKey(signature [65]byte, publicK
 		return nil, err
 	}
 
-	return pubKey, nil
+	return pubKey, nil*/
 
 }
 
@@ -121,16 +93,16 @@ func (tapProtocol *TapProtocol) recID(signature []byte) (byte, error) {
 
 	firstByte := signature[0]
 	fmt.Println("First byte before:", firstByte)
-
-	switch {
-	case firstByte >= 39 && firstByte <= 42:
-		return byte(firstByte - 39), nil
-	case firstByte >= 27 && firstByte <= 30:
-		return byte(firstByte - 27), nil
-	default:
-		return 0, fmt.Errorf("invalid first byte value in signature")
-	}
-
+	/*
+		switch {
+		case firstByte >= 39 && firstByte <= 42:
+			return byte(firstByte - 39), nil
+		case firstByte >= 27 && firstByte <= 30:
+			return byte(firstByte - 27), nil
+		default:
+			return 0, fmt.Errorf("invalid first byte value in signature")
+		}
+	*/
 	/*
 
 			int header_num = header & 0xff;
