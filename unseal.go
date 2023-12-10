@@ -14,10 +14,10 @@ func (tapProtocol *TapProtocol) UnsealRequest(cvc string) ([]byte, error) {
 	slog.Debug("Request unseal")
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.Queue.Enqueue("status")
+		tapProtocol.queue.Enqueue("status")
 	}
 
-	tapProtocol.Queue.Enqueue("unseal")
+	tapProtocol.queue.Enqueue("unseal")
 
 	tapProtocol.cvc = cvc
 

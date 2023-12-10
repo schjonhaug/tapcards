@@ -7,7 +7,7 @@ import (
 
 func (tapProtocol *TapProtocol) StatusRequest() ([]byte, error) {
 
-	tapProtocol.Queue.Enqueue("status")
+	tapProtocol.queue.Enqueue("status")
 
 	return tapProtocol.nextCommand()
 

@@ -9,12 +9,12 @@ func (tapProtocol *TapProtocol) CertsRequest() ([]byte, error) {
 	slog.Debug("Request certs")
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.Queue.Enqueue("status")
+		tapProtocol.queue.Enqueue("status")
 	}
 
-	tapProtocol.Queue.Enqueue("certs")
-	tapProtocol.Queue.Enqueue("read")
-	tapProtocol.Queue.Enqueue("check")
+	tapProtocol.queue.Enqueue("certs")
+	tapProtocol.queue.Enqueue("read")
+	tapProtocol.queue.Enqueue("check")
 
 	return tapProtocol.nextCommand()
 

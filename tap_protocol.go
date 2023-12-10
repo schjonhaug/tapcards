@@ -40,7 +40,7 @@ type TapProtocol struct {
 
 	Satscard
 
-	Queue
+	queue Queue
 }
 
 func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
@@ -71,7 +71,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
-	command := tapProtocol.Queue.Dequeue()
+	command := tapProtocol.queue.Dequeue()
 
 	if command == nil {
 		return nil, fmt.Errorf("queue empty")
@@ -219,7 +219,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 
-	command := tapProtocol.Queue.Peek()
+	command := tapProtocol.queue.Peek()
 
 	if command == nil {
 
