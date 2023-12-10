@@ -21,5 +21,6 @@ The following Satscard commands are implemented
 go install golang.org/x/mobile/cmd/gomobile@latest
 go install golang.org/x/mobile/bind
 gomobile init
-gomobile bind
+gomobile bind -target=ios
+gomobile bind -target=android
 ```
