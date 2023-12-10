@@ -11,6 +11,9 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 )
 
+const factoryRootPublicKeyEmulatorString = "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b"
+const factoryRootPublicKeyString = "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1"
+
 func (tapProtocol *TapProtocol) checkRequest() ([]byte, error) {
 
 	nonce, err := tapProtocol.createNonce()
