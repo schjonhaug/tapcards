@@ -1,4 +1,4 @@
-package tapprotocol
+package tapcards
 
 import (
 	"fmt"

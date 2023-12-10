@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	tapprotocol "github.com/schjonhaug/coinkite-tap-proto-go"
+	tapcards "github.com/schjonhaug/coinkite-tap-proto-go"
 	"github.com/skythen/apdu"
 )
 
@@ -134,7 +134,7 @@ func main() {
 	transport.Connect()
 	defer transport.Disconnect()
 
-	var tapProtocol tapprotocol.TapProtocol
+	var tapProtocol tapcards.TapProtocol
 
 	tapProtocol.UseEmulator()
 	tapProtocol.EnableDebugLogging()
@@ -157,7 +157,7 @@ func main() {
 	case "new":
 		request, err = tapProtocol.NewRequest(cvc)
 	case "wait":
-		request, err = tapProtocol.WaitRequest(cvc)
+		request, err = tapProtocol.WaitRequest()
 
 	default:
 		die(errors.New("unknown command"))
