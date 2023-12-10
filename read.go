@@ -40,7 +40,7 @@ func (tapProtocol *TapProtocol) readRequest() ([]byte, error) {
 		Nonce:   nonce,
 	}
 
-	return tapProtocol.ApduWrap(readCommand)
+	return apduWrap(readCommand)
 
 }
 

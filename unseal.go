@@ -41,7 +41,7 @@ func (tapProtocol *TapProtocol) unsealRequest() ([]byte, error) {
 		Slot:    tapProtocol.Satscard.ActiveSlot,
 	}
 
-	return tapProtocol.ApduWrap(unsealCommand)
+	return apduWrap(unsealCommand)
 
 }
 

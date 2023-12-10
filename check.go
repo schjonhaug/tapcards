@@ -25,7 +25,7 @@ func (tapProtocol *TapProtocol) checkRequest() ([]byte, error) {
 		Nonce:   nonce,
 	}
 
-	return tapProtocol.ApduWrap(checkCommand)
+	return apduWrap(checkCommand)
 
 }
 

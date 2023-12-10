@@ -63,7 +63,7 @@ func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
 
 func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
-	bytes, err := tapProtocol.ApduUnwrap(response)
+	bytes, err := apduUnwrap(response)
 
 	if err != nil {
 		return nil, err

@@ -19,7 +19,7 @@ func (tapProtocol *TapProtocol) statusRequest() ([]byte, error) {
 
 	statusCommand := statusCommand{Command{Cmd: "status"}}
 
-	return tapProtocol.ApduWrap(statusCommand)
+	return apduWrap(statusCommand)
 
 }
 

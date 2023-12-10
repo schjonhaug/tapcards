@@ -44,7 +44,7 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 		auth:    *auth,
 	}
 
-	return tapProtocol.ApduWrap(newCommand)
+	return apduWrap(newCommand)
 
 }
 

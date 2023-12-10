@@ -7,7 +7,7 @@ import (
 	"github.com/skythen/apdu"
 )
 
-func (tapProtocol *TapProtocol) ApduWrap(value interface{}) ([]byte, error) {
+func apduWrap(value interface{}) ([]byte, error) {
 
 	cborSerialized, err := cbor.Marshal(value)
 	if err != nil {
@@ -20,7 +20,7 @@ func (tapProtocol *TapProtocol) ApduWrap(value interface{}) ([]byte, error) {
 
 }
 
-func (tapProtocol *TapProtocol) ApduUnwrap(value []byte) ([]byte, error) {
+func apduUnwrap(value []byte) ([]byte, error) {
 
 	rapdu, err := apdu.ParseRapdu(value)
 

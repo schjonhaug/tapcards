@@ -26,7 +26,7 @@ func (tapProtocol *TapProtocol) certsRequest() ([]byte, error) {
 		Command{Cmd: "certs"},
 	}
 
-	return tapProtocol.ApduWrap(certsCommand)
+	return apduWrap(certsCommand)
 }
 
 func (tapProtocol *TapProtocol) parseCertsData(certsData certsData) error {
