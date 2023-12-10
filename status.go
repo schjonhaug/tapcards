@@ -23,7 +23,7 @@ func (tapProtocol *TapProtocol) statusRequest() ([]byte, error) {
 
 }
 
-func (tapProtocol *TapProtocol) parseStatusData(statusData StatusData) error {
+func (tapProtocol *TapProtocol) parseStatusData(statusData statusData) error {
 
 	slog.Debug("Parse status")
 

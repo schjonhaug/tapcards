@@ -6,7 +6,7 @@ type cardResponse struct {
 	CardNonce [16]byte `cbor:"card_nonce"`
 }
 
-type StatusData struct {
+type statusData struct {
 	cardResponse
 	Proto     int
 	Birth     int

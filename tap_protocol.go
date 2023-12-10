@@ -80,7 +80,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 	switch command {
 	case "status":
 
-		var v StatusData
+		var v statusData
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
