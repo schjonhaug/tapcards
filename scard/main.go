@@ -101,15 +101,13 @@ func main() {
 		}
 		fmt.Printf("\tr-apdu: % x\n", rsp)
 
-		cmd, err = tapProtocol.ParseResponse(rsp)
+		_, err = tapProtocol.ParseResponse(rsp)
 
 		if err != nil {
 			die(err)
 		}
 
-		fmt.Println("cmd:", cmd)
-
-		fmt.Println(tapProtocol.Satscard)
+		fmt.Println("Satscard", tapProtocol.Satscard)
 
 		// READ FROM COMMAND LINE
 
