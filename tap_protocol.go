@@ -42,22 +42,6 @@ type TapProtocol struct {
 	Queue
 }
 
-// xor performs a bitwise XOR operation on two byte slices.
-// It takes two byte slices, a and b, as input and returns a new byte slice, c,
-// where each element of c is the result of XOR operation between the corresponding elements of a and b.
-// If the input slices have different lengths, it panics.
-func xor(a, b []byte) []byte {
-
-	if len(a) != len(b) {
-		panic("input slices have different lengths")
-	}
-	c := make([]byte, len(a))
-	for i := range a {
-		c[i] = a[i] ^ b[i]
-	}
-	return c
-}
-
 func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
 
 	// Create nonce
@@ -67,7 +51,8 @@ func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("\nCreated nonce: %x\n", nonce)
+
+	slog.Debug("Created nonce", "Nonce", fmt.Sprintf("%x", nonce))
 
 	tapProtocol.appNonce = nonce
 
@@ -86,8 +71,6 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
 	command := tapProtocol.Queue.Dequeue()
-
-	fmt.Println("Dequeued command: ", command)
 
 	if command == nil {
 		return nil, fmt.Errorf("queue empty")
@@ -227,8 +210,6 @@ func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 
 		return nil, nil
 	}
-
-	fmt.Println("nextCommand: ", command)
 
 	switch command {
 

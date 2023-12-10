@@ -5,11 +5,12 @@ import (
 	"encoding/base32"
 	"errors"
 	"fmt"
-	"log/slog"
 	"math/big"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/bech32"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
@@ -23,7 +24,7 @@ func identity(cardPublicKey []byte) (string, error) {
 	// - result is 23 chars long
 
 	if len(cardPublicKey) != 33 {
-		return "", errors.New("expecting compressed pubkey")
+		return "", errors.New("expecting compressed public key")
 	}
 
 	checksum := sha256.Sum256(cardPublicKey[:])
@@ -61,7 +62,6 @@ func recID(signature []byte) (byte, error) {
 	}
 
 	firstByte := signature[0]
-	fmt.Println("First byte before:", firstByte)
 
 	//ecdsa.RecoverCompact subtracts 27 from the recID, so we need to offset it
 	offset := 27
@@ -79,8 +79,6 @@ func recID(signature []byte) (byte, error) {
 
 func signatureToPublicKey(signature [65]byte, publicKey *secp256k1.PublicKey) (*secp256k1.PublicKey, error) {
 
-	slog.Debug(fmt.Sprint("Signature:", signature[:]))
-
 	messageDigest := sha256.Sum256(publicKey.SerializeCompressed())
 
 	recId, err := recID(signature[:])
@@ -88,8 +86,6 @@ func signatureToPublicKey(signature [65]byte, publicKey *secp256k1.PublicKey) (*
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("RecID:", recId)
 
 	newSig := append([]byte{recId}, signature[1:]...)
 
@@ -127,4 +123,39 @@ func generateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 	sharedSecret := append(even, xBytes[:]...)
 
 	return sharedSecret
+}
+
+// xor performs a bitwise XOR operation on two byte slices.
+// It takes two byte slices, a and b, as input and returns a new byte slice, c,
+// where each element of c is the result of XOR operation between the corresponding elements of a and b.
+// If the input slices have different lengths, it panics.
+func xor(a, b []byte) ([]byte, error) {
+
+	if len(a) != len(b) {
+		return nil, errors.New("input slices have different lengths")
+	}
+	c := make([]byte, len(a))
+	for i := range a {
+		c[i] = a[i] ^ b[i]
+	}
+	return c, nil
+}
+
+// Convert public key to address
+func paymentAddress(publicKey [33]byte) (string, error) {
+	hash160 := btcutil.Hash160(publicKey[:])
+
+	convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
+	if err != nil {
+		return "", err
+	}
+
+	zero := make([]byte, 1)
+
+	encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
+	if err != nil {
+		return "", err
+	}
+
+	return encoded, nil
 }

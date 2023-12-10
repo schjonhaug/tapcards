@@ -91,7 +91,7 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 	if !factoryRootPublicKey.IsEqual(publicKey) {
 
 		slog.Debug("CHECK", "FactoryRootPublicKey", fmt.Sprintf("%x", factoryRootPublicKey.SerializeCompressed()))
-		slog.Debug("CHECK", "Public key", fmt.Sprintf("%x", publicKey.SerializeCompressed()))
+		slog.Debug("CHECK", "PublicKey", fmt.Sprintf("%x", publicKey.SerializeCompressed()))
 
 		return errors.New("counterfeit card: invalid factory root public key")
 

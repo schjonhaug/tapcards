@@ -4,18 +4,15 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/btcutil/bech32"
 )
 
 func (tapProtocol *TapProtocol) ReadRequest() ([]byte, error) {
 
-	fmt.Println("----------------------------")
-	fmt.Println("Read ")
-	fmt.Println("----------------------------")
+	slog.Debug("Request read")
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
 
@@ -51,12 +48,10 @@ func (tapProtocol *TapProtocol) readRequest() ([]byte, error) {
 // read a SATSCARD’s current payment address
 func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
 
-	fmt.Println("########")
-	fmt.Println("# READ #")
-	fmt.Println("########")
+	slog.Debug("Parse read")
 
-	fmt.Printf("Signature: %x\n", readData.Signature)
-	fmt.Printf("Public Key: %x\n", readData.PublicKey)
+	slog.Debug("READ", "Signature", fmt.Sprintf("%x", readData.Signature))
+	slog.Debug("READ", "PublicKey", fmt.Sprintf("%x", readData.PublicKey))
 
 	// Verify public key with signature
 
@@ -90,7 +85,7 @@ func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
 
 	tapProtocol.currentCardNonce = readData.CardNonce
 
-	paymentAddress, err := paymentAddress(&readData)
+	paymentAddress, err := paymentAddress(readData.PublicKey)
 
 	if err != nil {
 		return err
@@ -100,23 +95,4 @@ func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
 
 	return nil
 
-}
-
-// Convert public key to address
-func paymentAddress(readData *readData) (string, error) {
-	hash160 := btcutil.Hash160(readData.PublicKey[:])
-
-	convertedBits, err := bech32.ConvertBits(hash160, 8, 5, true)
-	if err != nil {
-		return "", err
-	}
-
-	zero := make([]byte, 1)
-
-	encoded, err := bech32.Encode("bc", append(zero, convertedBits...))
-	if err != nil {
-		return "", err
-	}
-
-	return encoded, nil
 }

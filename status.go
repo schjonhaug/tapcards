@@ -7,6 +7,8 @@ import (
 
 func (tapProtocol *TapProtocol) StatusRequest() ([]byte, error) {
 
+	tapProtocol.Queue.Enqueue("status")
+
 	return tapProtocol.nextCommand()
 
 }
@@ -25,8 +27,8 @@ func (tapProtocol *TapProtocol) parseStatusData(statusData StatusData) error {
 
 	slog.Debug("Parse status")
 
-	slog.Debug(fmt.Sprintf("Pubkey:     %x", statusData.PublicKey))
-	slog.Debug(fmt.Sprintf("Card Nonce: %x", statusData.CardNonce))
+	slog.Debug("STATUS", "PublicKey", fmt.Sprintf("%x", statusData.PublicKey))
+	slog.Debug("STATUS", "CardNonce", fmt.Sprintf("%x", statusData.CardNonce))
 
 	tapProtocol.cardPublicKey = statusData.PublicKey
 	tapProtocol.currentCardNonce = statusData.CardNonce

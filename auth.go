@@ -39,9 +39,18 @@ func (tapProtocol *TapProtocol) authenticate(cvc string, command Command) (*auth
 
 	md := sha256.Sum256(append(tapProtocol.currentCardNonce[:], []byte(command.Cmd)...))
 
-	mask := xor(tapProtocol.sessionKey[:], md[:])[:len(cvc)]
+	f, err := xor(tapProtocol.sessionKey[:], md[:])
+	if err != nil {
+		return nil, err
+	}
 
-	xcvc := xor([]byte(cvc), mask)
+	mask := f[:len(cvc)]
+
+	xcvc, err := xor([]byte(cvc), mask)
+
+	if err != nil {
+		return nil, err
+	}
 
 	slog.Debug("AUTH", "XCVC", fmt.Sprintf("%x", xcvc))
 

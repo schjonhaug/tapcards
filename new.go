@@ -31,10 +31,6 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 
 	}
 
-	fmt.Println("------------")
-	fmt.Println("New")
-	fmt.Println("------------")
-
 	command := Command{Cmd: "new"}
 
 	auth, err := tapProtocol.authenticate(tapProtocol.cvc, command)
@@ -56,11 +52,8 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 
 func (tapProtocol *TapProtocol) parseNewData(newData newData) error {
 
-	fmt.Println("#######")
-	fmt.Println("# NEW #")
-	fmt.Println("#######")
-
-	fmt.Println("Slot:             ", newData.Slot)
+	slog.Debug("Parse new")
+	slog.Debug("NEW", "Slot", newData.Slot)
 
 	tapProtocol.currentCardNonce = newData.CardNonce
 	tapProtocol.Satscard.ActiveSlot = newData.Slot

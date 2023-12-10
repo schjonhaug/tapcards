@@ -2,6 +2,7 @@ package tapprotocol
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
@@ -10,9 +11,7 @@ import (
 
 func (tapProtocol *TapProtocol) UnsealRequest(cvc string) ([]byte, error) {
 
-	fmt.Println("----------------------------")
-	fmt.Println("Unseal")
-	fmt.Println("----------------------------")
+	slog.Debug("Request unseal")
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
 		tapProtocol.Queue.Enqueue("status")
@@ -49,25 +48,27 @@ func (tapProtocol *TapProtocol) unsealRequest() ([]byte, error) {
 
 func (tapProtocol *TapProtocol) parseUnsealData(unsealData unsealData) error {
 
-	fmt.Println("##########")
-	fmt.Println("# UNSEAL #")
-	fmt.Println("##########")
+	slog.Debug("Parse unseal")
 
-	fmt.Println("Slot:             ", unsealData.Slot)
-	fmt.Printf("Private Key:       %x\n", unsealData.PrivateKey)
-	fmt.Printf("Public Key:        %x\n", unsealData.PublicKey)
-	fmt.Printf("Master Public Key: %x\n", unsealData.MasterPublicKey)
-	fmt.Printf("Chain Code:        %x\n", unsealData.ChainCode)
-	fmt.Printf("Card Nonce:        %x\n", unsealData.CardNonce)
+	slog.Debug("UNSEAL", "Slot", unsealData.Slot)
+	slog.Debug("UNSEAL", "PrivateKey", fmt.Sprintf("%x", unsealData.PrivateKey))
+	slog.Debug("UNSEAL", "PublicKey", fmt.Sprintf("%x", unsealData.PublicKey))
+	slog.Debug("UNSEAL", "MasterPublicKey", fmt.Sprintf("%x", unsealData.MasterPublicKey))
+	slog.Debug("UNSEAL", "ChainCode", fmt.Sprintf("%x", unsealData.ChainCode))
+	slog.Debug("UNSEAL", "CardNonce", fmt.Sprintf("%x", unsealData.CardNonce))
 
 	tapProtocol.currentCardNonce = unsealData.CardNonce
 
 	// Calculate and return private key as wif
 
-	unencryptedPrivateKeyBytes := xor(unsealData.PrivateKey[:], tapProtocol.sessionKey[:])
+	unencryptedPrivateKeyBytes, err := xor(unsealData.PrivateKey[:], tapProtocol.sessionKey[:])
+	if err != nil {
+		return err
+	}
 
 	privateKey, _ := btcec.PrivKeyFromBytes(unencryptedPrivateKeyBytes)
 
+	// TODO support other than mainnet for development and testing purposes
 	wif, err := btcutil.NewWIF(privateKey, &chaincfg.MainNetParams, true)
 
 	if err != nil {
