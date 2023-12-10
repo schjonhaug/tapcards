@@ -5,7 +5,7 @@ import (
 )
 
 // ISO Applet Select
-func (tapProtocol *TapProtocol) ISOAppletSelectRequest() (cmd []byte, error error) {
+func (tapProtocol *TapProtocol) ISOAppletSelectRequest() ([]byte, error) {
 
 	// ISO Applet Select is equivalent to doing a "status" command
 	tapProtocol.Queue.Enqueue("status")
