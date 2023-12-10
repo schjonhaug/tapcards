@@ -136,6 +136,8 @@ func main() {
 
 	var tapProtocol tapprotocol.TapProtocol
 
+	tapProtocol.EnableDebugLogging()
+
 	argsWithoutProg := os.Args[1:]
 
 	var request []byte

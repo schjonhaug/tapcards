@@ -5,7 +5,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/big"
+	"os"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -42,9 +44,7 @@ type TapProtocol struct {
 
 func (tapProtocol *TapProtocol) authenticate(cvc string, command Command) (*auth, error) {
 
-	fmt.Println("\n########")
-	fmt.Println("# AUTH #")
-	fmt.Println("########")
+	slog.Debug("AUTH")
 
 	fmt.Println("CVC:    ", cvc)
 	fmt.Println("Command:", command.Cmd)
@@ -163,7 +163,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	command := tapProtocol.Queue.Dequeue()
 
-	fmt.Println("Dequed command: ", command)
+	fmt.Println("Dequeued command: ", command)
 
 	if command == nil {
 		return nil, fmt.Errorf("queue empty")
@@ -311,4 +311,10 @@ func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 
 	}
 
+}
+
+func (TapProtocol *TapProtocol) EnableDebugLogging() {
+
+	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
+	slog.SetDefault(slog.New(handler))
 }
