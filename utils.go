@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/big"
 	"strings"
 
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
@@ -96,4 +97,34 @@ func signatureToPublicKey(signature [65]byte, publicKey *secp256k1.PublicKey) (*
 
 	return pubKey, err
 
+}
+
+// generateSharedSecret generates a shared secret based on a private key and a
+// public key using Diffie-Hellman key exchange (ECDH) (RFC 5903).
+// RFC5903 Section 9 states we should only return x.
+//
+// It is recommended to securely hash the result before using as a cryptographic
+// key.
+func generateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1.PublicKey) []byte {
+
+	var point, result secp256k1.JacobianPoint
+	publicKey.AsJacobian(&point)
+	secp256k1.ScalarMultNonConst(&privateKey.Key, &point, &result)
+	result.ToAffine()
+	xBytes := result.X.Bytes()
+
+	y := new(big.Int)
+	y.SetBytes(result.Y.Bytes()[:])
+
+	// Perform a bitwise AND with 0x01
+	andResult := new(big.Int).And(y, big.NewInt(0x01))
+
+	// Perform a bitwise OR with 0x02
+	orResult := new(big.Int).Or(andResult, big.NewInt(0x02))
+
+	even := orResult.Bytes()
+
+	sharedSecret := append(even, xBytes[:]...)
+
+	return sharedSecret
 }

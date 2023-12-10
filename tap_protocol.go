@@ -2,15 +2,11 @@ package tapprotocol
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"log/slog"
-	"math/big"
 	"os"
 
-	"github.com/btcsuite/btcd/btcec/v2"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/fxamacker/cbor/v2"
 )
 
@@ -46,52 +42,6 @@ type TapProtocol struct {
 	Queue
 }
 
-func (tapProtocol *TapProtocol) authenticate(cvc string, command Command) (*auth, error) {
-
-	slog.Debug("AUTH")
-
-	fmt.Println("CVC:    ", cvc)
-	fmt.Println("Command:", command.Cmd)
-
-	cardPublicKey, err := btcec.ParsePubKey(tapProtocol.cardPublicKey[:])
-	if err != nil {
-		return nil, err
-	}
-
-	// Derive an ephemeral public/private keypair for performing ECDHE with
-	// the recipient.
-
-	ephemeralPrivateKey, err := secp256k1.GeneratePrivateKey()
-	if err != nil {
-
-		return nil, err
-	}
-
-	ephemeralPublicKey := ephemeralPrivateKey.PubKey().SerializeCompressed()
-
-	fmt.Print("\n")
-	fmt.Printf("Ephemeral Public Key: %x\n", ephemeralPublicKey)
-
-	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
-	tapProtocol.sessionKey = sha256.Sum256(generateSharedSecret(ephemeralPrivateKey, cardPublicKey))
-
-	fmt.Printf("Session Key:  %x\n", tapProtocol.sessionKey)
-	fmt.Printf("CurrentCardNonce:  %x\n", tapProtocol.currentCardNonce)
-
-	md := sha256.Sum256(append(tapProtocol.currentCardNonce[:], []byte(command.Cmd)...))
-
-	mask := xor(tapProtocol.sessionKey[:], md[:])[:len(cvc)]
-
-	xcvc := xor([]byte(cvc), mask)
-
-	fmt.Printf("xcvc %x\n", xcvc)
-
-	auth := auth{EphemeralPubKey: ephemeralPublicKey, XCVC: xcvc}
-
-	return &auth, nil
-
-}
-
 // xor performs a bitwise XOR operation on two byte slices.
 // It takes two byte slices, a and b, as input and returns a new byte slice, c,
 // where each element of c is the result of XOR operation between the corresponding elements of a and b.
@@ -106,36 +56,6 @@ func xor(a, b []byte) []byte {
 		c[i] = a[i] ^ b[i]
 	}
 	return c
-}
-
-// generateSharedSecret generates a shared secret based on a private key and a
-// public key using Diffie-Hellman key exchange (ECDH) (RFC 5903).
-// RFC5903 Section 9 states we should only return x.
-//
-// It is recommended to securely hash the result before using as a cryptographic
-// key.
-func generateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1.PublicKey) []byte {
-
-	var point, result secp256k1.JacobianPoint
-	publicKey.AsJacobian(&point)
-	secp256k1.ScalarMultNonConst(&privateKey.Key, &point, &result)
-	result.ToAffine()
-	xBytes := result.X.Bytes()
-
-	y := new(big.Int)
-	y.SetBytes(result.Y.Bytes()[:])
-
-	// Perform a bitwise AND with 0x01
-	andResult := new(big.Int).And(y, big.NewInt(0x01))
-
-	// Perform a bitwise OR with 0x02
-	orResult := new(big.Int).Or(andResult, big.NewInt(0x02))
-
-	even := orResult.Bytes()
-
-	sharedSecret := append(even, xBytes[:]...)
-
-	return sharedSecret
 }
 
 func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
@@ -180,13 +100,9 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
-			fmt.Println("Error1: ", err)
-
 			var e ErrorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
-
-				fmt.Println("Error2: ", err)
 
 				return nil, err
 			}
