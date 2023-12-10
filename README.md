@@ -1,4 +1,14 @@
-# Coinkite Tap Proto Go
+# Coinkite Tap Protocol Go
+
+## Satscard commands
+
+The following Satscard commands are implemented
+
+* status
+* read
+* certs
+* new
+* unseal
 
 ## Compile for mobile
 

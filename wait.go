@@ -1,49 +1,38 @@
 package tapprotocol
 
-func (tapProtocol *TapProtocol) Wait() (int, error) {
+import (
+	"log/slog"
+)
 
-	return 0, nil
-	/* TODO
-	   	tapProtocol.transport.Connect()
-	   	defer tapProtocol.transport.Disconnect()
+func (tapProtocol *TapProtocol) WaitRequest(cvc string) ([]byte, error) {
 
-	   	waitData, err := tapProtocol.wait()
+	slog.Debug("Request wait")
 
-	   	if err != nil {
+	if tapProtocol.currentCardNonce == [16]byte{} {
+		tapProtocol.Queue.Enqueue("status")
+	}
 
-	   		return 0, err
-	   	}
+	tapProtocol.Queue.Enqueue("wait")
 
-	   	return waitData.AuthDelay, nil
+	return tapProtocol.nextCommand()
 
-	   }
-	   func (tapProtocol *TapProtocol) wait() (*waitData, error) {
+}
 
-	   	fmt.Println("----------------------------")
-	   	fmt.Println("Wait")
-	   	fmt.Println("----------------------------")
+func (tapProtocol *TapProtocol) waitRequest() ([]byte, error) {
 
-	   	waitCommand := waitCommand{Command{Cmd: "wait"}}
+	waitCommand := waitCommand{Command{Cmd: "wait"}}
 
-	   	data, err := tapProtocol.sendReceive(waitCommand)
+	return tapProtocol.ApduWrap(waitCommand)
 
-	   	fmt.Println("########")
-	   	fmt.Println("# WAIT #")
-	   	fmt.Println("########")
+}
 
-	   	if err != nil {
+func (tapProtocol *TapProtocol) parseWaitData(waitData waitData) error {
 
-	   		return nil, err
-	   	}
+	slog.Debug("Parse wait")
 
-	   	waitData, ok := data.(waitData)
+	slog.Debug("WAIT", "Success", waitData.Success)
+	slog.Debug("WAIT", "AuthDelay", waitData.AuthDelay)
 
-	   	if !ok {
-	   		return nil, errors.New("incorrect data type")
-	   	}
-
-	   	return &waitData, nil
-
-	*/
+	return nil
 
 }
