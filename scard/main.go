@@ -113,6 +113,8 @@ func main() {
 
 		argsWithoutProg := os.Args[1:]
 
+		cvc := argsWithoutProg[1]
+
 		var request []byte
 
 		switch argsWithoutProg[0] {
@@ -122,11 +124,11 @@ func main() {
 		case "read":
 			request, err = tapProtocol.ReadRequest()
 		case "unseal":
-			request, err = tapProtocol.UnsealRequest(argsWithoutProg[1])
+			request, err = tapProtocol.UnsealRequest(cvc)
 		case "certs":
 			request, err = tapProtocol.CertsRequest()
 		case "new":
-			request, err = tapProtocol.NewRequest(argsWithoutProg[1])
+			request, err = tapProtocol.NewRequest(cvc)
 		case "wait":
 			request, err = tapProtocol.WaitRequest()
 
