@@ -136,6 +136,7 @@ func main() {
 
 	var tapProtocol tapprotocol.TapProtocol
 
+	tapProtocol.UseEmulator()
 	tapProtocol.EnableDebugLogging()
 
 	argsWithoutProg := os.Args[1:]

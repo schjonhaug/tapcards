@@ -14,6 +14,10 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
+const openDime = "OPENDIME"
+
+var factoryRootPublicKeyString = "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1"
+
 // TAP PROTOCOL
 
 type Satscard struct {
@@ -317,4 +321,10 @@ func (TapProtocol *TapProtocol) EnableDebugLogging() {
 
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(handler))
+}
+
+func (TapProtocol *TapProtocol) UseEmulator() {
+
+	factoryRootPublicKeyString = "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b"
+
 }

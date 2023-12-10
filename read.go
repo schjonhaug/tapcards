@@ -60,7 +60,7 @@ func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
 
 	// Verify public key with signature
 
-	message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
+	message := append([]byte(openDime), tapProtocol.currentCardNonce[:]...)
 	message = append(message, tapProtocol.appNonce[:]...)
 	message = append(message, []byte{byte(tapProtocol.Satscard.ActiveSlot)}...)
 

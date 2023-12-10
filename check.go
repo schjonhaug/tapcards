@@ -11,9 +11,6 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 )
 
-const factoryRootPublicKeyEmulatorString = "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b"
-const factoryRootPublicKeyString = "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1"
-
 func (tapProtocol *TapProtocol) checkRequest() ([]byte, error) {
 
 	nonce, err := tapProtocol.createNonce()
@@ -40,7 +37,7 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 	fmt.Printf("Auth signature: %x\n", checkData.AuthSignature[:])
 	fmt.Printf("Card Nonce: %x\n", checkData.CardNonce[:])
 
-	message := append([]byte("OPENDIME"), tapProtocol.currentCardNonce[:]...)
+	message := append([]byte(openDime), tapProtocol.currentCardNonce[:]...)
 	message = append(message, tapProtocol.appNonce[:]...)
 
 	if tapProtocol.currentSlotPublicKey != [33]byte{} {
@@ -72,7 +69,7 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 
 	for i := 0; i < len(tapProtocol.certificateChain); i++ {
 
-		publicKey, err = tapProtocol.signatureToPublicKey(tapProtocol.certificateChain[i], publicKey)
+		publicKey, err = signatureToPublicKey(tapProtocol.certificateChain[i], publicKey)
 
 		if err != nil {
 			return err
@@ -80,11 +77,8 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 
 	}
 
-	hexString := "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b" // bogus
-	//hexString := "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1" // real
-
 	// Convert hex string to bytes
-	factoryRootPublicKeyBytes, err := hex.DecodeString(hexString)
+	factoryRootPublicKeyBytes, err := hex.DecodeString(factoryRootPublicKeyString)
 	if err != nil {
 		log.Fatal(err)
 	}
