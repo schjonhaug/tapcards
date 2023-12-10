@@ -5,9 +5,9 @@ import (
 )
 
 // ISO Applet Select
-func (tapProtocol *TapProtocol) InitRequest() (cmd []byte, error error) {
+func (tapProtocol *TapProtocol) ISOAppletSelectRequest() (cmd []byte, error error) {
 
-	// This ISO Applet is equivalent to doing a "status" command
+	// ISO Applet Select is equivalent to doing a "status" command
 	tapProtocol.Queue.Enqueue("status")
 
 	data := []byte{0xf0, 'C', 'o', 'i', 'n', 'k', 'i', 't', 'e', 'C', 'A', 'R', 'D', 'v', '1'}

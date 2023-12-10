@@ -11,7 +11,7 @@ type auth struct {
 	XCVC            []byte `cbor:"xcvc"`    //encrypted CVC value
 }
 
-type StatusCommand struct {
+type statusCommand struct {
 	Command
 }
 

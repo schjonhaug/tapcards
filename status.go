@@ -17,7 +17,7 @@ func (tapProtocol *TapProtocol) statusRequest() ([]byte, error) {
 
 	slog.Debug("Request status")
 
-	statusCommand := StatusCommand{Command{Cmd: "status"}}
+	statusCommand := statusCommand{Command{Cmd: "status"}}
 
 	return tapProtocol.ApduWrap(statusCommand)
 

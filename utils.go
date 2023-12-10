@@ -128,7 +128,7 @@ func generateSharedSecret(privateKey *secp256k1.PrivateKey, publicKey *secp256k1
 // xor performs a bitwise XOR operation on two byte slices.
 // It takes two byte slices, a and b, as input and returns a new byte slice, c,
 // where each element of c is the result of XOR operation between the corresponding elements of a and b.
-// If the input slices have different lengths, it panics.
+// If the input slices have different lengths, it returns an error.
 func xor(a, b []byte) ([]byte, error) {
 
 	if len(a) != len(b) {
