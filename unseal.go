@@ -74,7 +74,7 @@ func (tapProtocol *TapProtocol) parseUnsealData(unsealData unsealData) error {
 		return err
 	}
 
-	tapProtocol.Satscard.CurrentSlotPrivateKey = wif.String()
+	tapProtocol.Satscard.ActiveSlotPrivateKey = wif.String()
 
 	return nil
 

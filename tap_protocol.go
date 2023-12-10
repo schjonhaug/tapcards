@@ -15,14 +15,14 @@ import (
 // TAP PROTOCOL
 
 type Satscard struct {
-	ActiveSlot            int
-	NumberOfSlots         int
-	Identity              string
-	PaymentAddress        string
-	Proto                 int
-	Birth                 int
-	Version               string
-	CurrentSlotPrivateKey string
+	ActiveSlot           int
+	NumberOfSlots        int
+	Identity             string
+	PaymentAddress       string
+	Proto                int
+	Birth                int
+	Version              string
+	ActiveSlotPrivateKey string
 }
 
 type TapProtocol struct {
