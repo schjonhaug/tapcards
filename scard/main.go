@@ -125,6 +125,8 @@ func main() {
 			request, err = tapProtocol.UnsealRequest(argsWithoutProg[1])
 		case "certs":
 			request, err = tapProtocol.CertsRequest()
+		case "new":
+			request, err = tapProtocol.NewRequest(argsWithoutProg[1])
 
 		default:
 			die(errors.New("unknown command"))

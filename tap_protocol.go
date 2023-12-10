@@ -181,6 +181,23 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 		}
 
 		err = tapProtocol.parseCheckData(v)
+	case "new":
+
+		var v newData
+
+		if err := decMode.Unmarshal(bytes, &v); err != nil {
+
+			var e ErrorData
+
+			if err := decMode.Unmarshal(bytes, &e); err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("%d: %v", e.Code, e.Error)
+
+		}
+
+		err = tapProtocol.parseNewData(v)
 
 	default:
 
@@ -225,6 +242,8 @@ func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 		return tapProtocol.certsRequest()
 	case "check":
 		return tapProtocol.checkRequest()
+	case "new":
+		return tapProtocol.newRequest()
 
 	default:
 		return nil, errors.New("incorrect command")

@@ -154,6 +154,8 @@ func main() {
 		request, err = tapProtocol.UnsealRequest(cvc)
 	case "certs":
 		request, err = tapProtocol.CertsRequest()
+	case "new":
+		request, err = tapProtocol.NewRequest(cvc)
 
 	default:
 		die(errors.New("unknown command"))

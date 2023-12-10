@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
@@ -30,18 +31,16 @@ func (tapProtocol *TapProtocol) checkRequest() ([]byte, error) {
 
 func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 
-	fmt.Println("#########")
-	fmt.Println("# CHECK #")
-	fmt.Println("#########")
+	slog.Debug("Parse check")
 
-	fmt.Printf("Auth signature: %x\n", checkData.AuthSignature[:])
-	fmt.Printf("Card Nonce: %x\n", checkData.CardNonce[:])
+	slog.Debug("CHECK", "AuthSignature", fmt.Sprintf("%x", checkData.AuthSignature[:]))
+	slog.Debug("CHECK", "CardNonce", fmt.Sprintf("%x", checkData.CardNonce[:]))
 
 	message := append([]byte(openDime), tapProtocol.currentCardNonce[:]...)
 	message = append(message, tapProtocol.appNonce[:]...)
 
 	if tapProtocol.currentSlotPublicKey != [33]byte{} {
-		fmt.Println("Adding current slot public key")
+		slog.Debug("Adding current slot public key")
 		message = append(message, tapProtocol.currentSlotPublicKey[:]...)
 	}
 
@@ -89,14 +88,13 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 		return err
 	}
 
-	fmt.Printf("factoryRootPublicKey: %x\n", factoryRootPublicKey.SerializeCompressed())
-	fmt.Printf("publicKey:            %x\n", publicKey.SerializeCompressed())
-
 	if !factoryRootPublicKey.IsEqual(publicKey) {
+
+		slog.Debug("CHECK", "FactoryRootPublicKey", fmt.Sprintf("%x", factoryRootPublicKey.SerializeCompressed()))
+		slog.Debug("CHECK", "Public key", fmt.Sprintf("%x", publicKey.SerializeCompressed()))
+
 		return errors.New("counterfeit card: invalid factory root public key")
 
-	} else {
-		fmt.Println("factoryRootPublicKey matched")
 	}
 
 	tapProtocol.currentCardNonce = checkData.CardNonce
