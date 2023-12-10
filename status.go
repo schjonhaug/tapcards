@@ -29,6 +29,7 @@ func (tapProtocol *TapProtocol) parseStatusData(statusData StatusData) error {
 
 	slog.Debug("STATUS", "PublicKey", fmt.Sprintf("%x", statusData.PublicKey))
 	slog.Debug("STATUS", "CardNonce", fmt.Sprintf("%x", statusData.CardNonce))
+	slog.Debug("STATUS", "AuthDelay", statusData.AuthDelay)
 
 	tapProtocol.cardPublicKey = statusData.PublicKey
 	tapProtocol.currentCardNonce = statusData.CardNonce
@@ -48,6 +49,7 @@ func (tapProtocol *TapProtocol) parseStatusData(statusData StatusData) error {
 		Proto:          statusData.Proto,
 		Birth:          statusData.Birth,
 		Version:        statusData.Version,
+		AuthDelay:      statusData.AuthDelay,
 	}
 
 	return nil

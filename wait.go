@@ -4,7 +4,7 @@ import (
 	"log/slog"
 )
 
-func (tapProtocol *TapProtocol) WaitRequest(cvc string) ([]byte, error) {
+func (tapProtocol *TapProtocol) WaitRequest() ([]byte, error) {
 
 	slog.Debug("Request wait")
 
@@ -32,6 +32,8 @@ func (tapProtocol *TapProtocol) parseWaitData(waitData waitData) error {
 
 	slog.Debug("WAIT", "Success", waitData.Success)
 	slog.Debug("WAIT", "AuthDelay", waitData.AuthDelay)
+
+	tapProtocol.Satscard.AuthDelay = waitData.AuthDelay
 
 	return nil
 

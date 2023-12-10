@@ -32,7 +32,6 @@ func (tapProtocol *TapProtocol) unsealRequest() ([]byte, error) {
 	auth, err := tapProtocol.authenticate(tapProtocol.cvc, command)
 
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 

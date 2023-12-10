@@ -156,6 +156,8 @@ func main() {
 		request, err = tapProtocol.CertsRequest()
 	case "new":
 		request, err = tapProtocol.NewRequest(cvc)
+	case "wait":
+		request, err = tapProtocol.WaitRequest(cvc)
 
 	default:
 		die(errors.New("unknown command"))

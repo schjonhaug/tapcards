@@ -25,6 +25,7 @@ type Satscard struct {
 	Birth                int
 	Version              string
 	ActiveSlotPrivateKey string
+	AuthDelay            int
 }
 
 type TapProtocol struct {

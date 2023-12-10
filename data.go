@@ -14,6 +14,7 @@ type StatusData struct {
 	Address   string   `cbor:"addr"`
 	Version   string   `cbor:"ver"`
 	PublicKey [33]byte `cbor:"pubkey"`
+	AuthDelay int      `cbor:"auth_delay"`
 }
 
 type unsealData struct {

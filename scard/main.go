@@ -40,6 +40,8 @@ func main() {
 
 	var tapProtocol tapprotocol.TapProtocol
 
+	tapProtocol.EnableDebugLogging()
+
 	// Establish a context
 	ctx, err := scard.EstablishContext()
 	if err != nil {
@@ -127,6 +129,8 @@ func main() {
 			request, err = tapProtocol.CertsRequest()
 		case "new":
 			request, err = tapProtocol.NewRequest(argsWithoutProg[1])
+		case "wait":
+			request, err = tapProtocol.WaitRequest()
 
 		default:
 			die(errors.New("unknown command"))
@@ -139,8 +143,7 @@ func main() {
 
 		loop(card, request, tapProtocol.ParseResponse)
 
-		fmt.Println(tapProtocol)
-		fmt.Println(tapProtocol.Satscard)
+		fmt.Println("Satscard", tapProtocol.Satscard)
 
 	}
 
