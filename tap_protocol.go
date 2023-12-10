@@ -204,7 +204,6 @@ func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 	command := tapProtocol.Queue.Peek()
 
 	if command == nil {
-		fmt.Println("No more commands")
 
 		tapProtocol.cvc = ""
 

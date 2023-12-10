@@ -2,7 +2,6 @@ package tapprotocol
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 )
 
@@ -36,7 +35,6 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 	auth, err := tapProtocol.authenticate(tapProtocol.cvc, command)
 
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
