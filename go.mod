@@ -14,9 +14,8 @@ require github.com/pkg/errors v0.9.1 // indirect
 
 require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
-	github.com/ebfe/scard v0.0.0-20230420082256-7db3f9b7c8a7
 	github.com/skythen/apdu v0.2.0
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 )
