@@ -1,12 +1,12 @@
-# Coinkite Tap Protocol Go
+# Coinkite Tap Protocol Implementation in Go
 
-![Gopher](gopher.png)
+![Gopher Logo](gopher.png)
 
-This is a implementation of the [Tap Cards protocol](https://dev.coinkite.cards/docs/protocol.html) written in [Go](https://go.dev). The current version focuses solely on the [Satscard](https://satscard.com), and not [Tapsigner](https://tapsigner.com) nor [Satschip](https://satschip.com).
+This project is a Go language implementation of the [Tap Cards protocol](https://dev.coinkite.cards/docs/protocol.html), specifically focusing on the [Satscard](https://satscard.com) functionality. It does not cover [Tapsigner](https://tapsigner.com) or [Satschip](https://satschip.com) functionalities at this time.
 
-## Satscard commands
+## Available Satscard Commands
 
-The following Satscard commands are implemented
+Implemented commands for Satscard include:
 
 * [status](https://dev.coinkite.cards/docs/protocol.html#status)
 * [read](https://dev.coinkite.cards/docs/protocol.html#read)
@@ -15,35 +15,31 @@ The following Satscard commands are implemented
 * [unseal](https://dev.coinkite.cards/docs/protocol.html#unseal)
 * [wait](https://dev.coinkite.cards/docs/protocol.html#wait)
 
-## How to use
+## Usage Guide
 
-### First step
+### Initial Steps
 
-Before any other commands are sent to a card, you must first do an “ISO Applet Select”. As long as the card remains powered-up (in the RF field) you do not need to repeat this command.
+The first action with a card is an `ISOAppletSelect`. This step is not repeated as long as the card remains powered in the RF field.
 
-Then, you can run any of the command followed by `Request` to get a byte array which should be sent to the card. The library handles the details of APDU, so you can just send the raw bytes directly. The response from the card is a byte array which in turns need to be sent to `ParseResponse`. Some of the commands require multiple back-and-forth passes, so if you get a byte array from `ParseResponse`, it should be sent back to the cards, etc.
+Subsequently, run a command followed by `Request` to generate a byte array for the card. The library manages APDU complexities, allowing direct sending of raw bytes. The card’s byte array response should be processed through `ParseResponse`. Multiple interactions may be necessary for some commands, with byte arrays from `ParseResponse` being resent to the card as needed.
 
-Finally, when there are no more data in return from `ParseResponse`, you can call on `Satscard` to get info about the card, private keys, etc.
+Once `ParseResponse` yields no further data, use `Satscard` to access card information, private keys, etc.
 
-## Building mobile libraries
+## Building Mobile Libraries
 
-The Go library can be compiled to Objective-C on iOS and Java on Android, making it work in mobile applications.
+The Go library can be compiled for mobile platforms, supporting Objective-C on iOS and Java on Android.
 
-### Prerequisites
+### Setup Requirements
 
-#### iOS
+#### For iOS
 
-To build for iOS, you need to run macOS with either
-[Command Line Tools](https://developer.apple.com/download/all/?q=command%20line%20tools)
-or [Xcode](https://apps.apple.com/app/xcode/id497799835) installed.
+Requires macOS with [Command Line Tools](https://developer.apple.com/download/all/?q=command%20line%20tools) or [Xcode](https://apps.apple.com/app/xcode/id497799835).
 
-#### Android
+#### For Android
 
-To build for Android, you need either
-[Android Studio](https://developer.android.com/studio) or
-[Command Line Tools](https://developer.android.com/studio#downloads) installed, which in turn must be used to install [Android NDK](https://developer.android.com/ndk/).
+Requires [Android Studio](https://developer.android.com/studio) or [Command Line Tools](https://developer.android.com/studio#downloads), and the installation of [Android NDK](https://developer.android.com/ndk/).
 
-### Compile for mobile
+### Mobile Compilation Steps
 
 ```shell
 go install golang.org/x/mobile/cmd/gomobile@latest
