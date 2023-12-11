@@ -1,4 +1,4 @@
-module github.com/schjonhaug/coinkite-tap-proto-go
+module github.com/schjonhaug/coinkite-tap-cards-protocol-go
 
 go 1.21
 

@@ -1,4 +1,4 @@
-# Coinkite Tap Protocol Implementation in Go
+# Coinkite Tap Cards Protocol Implementation in Go
 
 ![Gopher Logo](gopher.png)
 
