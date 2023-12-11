@@ -4,23 +4,23 @@ import (
 	"log/slog"
 )
 
-func (tapProtocol *TapProtocol) CertsRequest() ([]byte, error) {
+func (satscard *Satscard) CertsRequest() ([]byte, error) {
 
 	slog.Debug("Request certs")
 
-	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.queue.enqueue("status")
+	if satscard.currentCardNonce == [16]byte{} {
+		satscard.queue.enqueue("status")
 	}
 
-	tapProtocol.queue.enqueue("certs")
-	tapProtocol.queue.enqueue("read")
-	tapProtocol.queue.enqueue("check")
+	satscard.queue.enqueue("certs")
+	satscard.queue.enqueue("read")
+	satscard.queue.enqueue("check")
 
-	return tapProtocol.nextCommand()
+	return satscard.nextCommand()
 
 }
 
-func (tapProtocol *TapProtocol) certsRequest() ([]byte, error) {
+func (satscard *Satscard) certsRequest() ([]byte, error) {
 
 	certsCommand := certsCommand{
 		command{Cmd: "certs"},
@@ -29,11 +29,11 @@ func (tapProtocol *TapProtocol) certsRequest() ([]byte, error) {
 	return apduWrap(certsCommand)
 }
 
-func (tapProtocol *TapProtocol) parseCertsData(certsData certsData) error {
+func (satscard *Satscard) parseCertsData(certsData certsData) error {
 
 	slog.Debug("Parse certs")
 
-	tapProtocol.certificateChain = certsData.CertificateChain
+	satscard.certificateChain = certsData.CertificateChain
 
 	return nil
 

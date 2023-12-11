@@ -12,9 +12,9 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 )
 
-func (tapProtocol *TapProtocol) checkRequest() ([]byte, error) {
+func (satscard *Satscard) checkRequest() ([]byte, error) {
 
-	nonce, err := tapProtocol.createNonce()
+	nonce, err := satscard.createNonce()
 
 	if err != nil {
 		return nil, err
@@ -29,19 +29,19 @@ func (tapProtocol *TapProtocol) checkRequest() ([]byte, error) {
 
 }
 
-func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
+func (satscard *Satscard) parseCheckData(checkData checkData) error {
 
 	slog.Debug("Parse check")
 
 	slog.Debug("CHECK", "AuthSignature", fmt.Sprintf("%x", checkData.AuthSignature[:]))
 	slog.Debug("CHECK", "CardNonce", fmt.Sprintf("%x", checkData.CardNonce[:]))
 
-	message := append([]byte(openDime), tapProtocol.currentCardNonce[:]...)
-	message = append(message, tapProtocol.appNonce[:]...)
+	message := append([]byte(openDime), satscard.currentCardNonce[:]...)
+	message = append(message, satscard.appNonce[:]...)
 
-	if tapProtocol.currentSlotPublicKey != [33]byte{} {
+	if satscard.currentSlotPublicKey != [33]byte{} {
 		slog.Debug("Adding current slot public key")
-		message = append(message, tapProtocol.currentSlotPublicKey[:]...)
+		message = append(message, satscard.currentSlotPublicKey[:]...)
 	}
 
 	messageDigest := sha256.Sum256([]byte(message))
@@ -54,7 +54,7 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 
 	signature := ecdsa.NewSignature(r, s)
 
-	publicKey, err := btcec.ParsePubKey(tapProtocol.cardPublicKey[:])
+	publicKey, err := btcec.ParsePubKey(satscard.cardPublicKey[:])
 
 	if err != nil {
 		return err
@@ -66,9 +66,9 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 		return errors.New("invalid signature certs")
 	}
 
-	for i := 0; i < len(tapProtocol.certificateChain); i++ {
+	for i := 0; i < len(satscard.certificateChain); i++ {
 
-		publicKey, err = signatureToPublicKey(tapProtocol.certificateChain[i], publicKey)
+		publicKey, err = signatureToPublicKey(satscard.certificateChain[i], publicKey)
 
 		if err != nil {
 			return err
@@ -97,7 +97,7 @@ func (tapProtocol *TapProtocol) parseCheckData(checkData checkData) error {
 
 	}
 
-	tapProtocol.currentCardNonce = checkData.CardNonce
+	satscard.currentCardNonce = checkData.CardNonce
 
 	return nil
 

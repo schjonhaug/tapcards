@@ -4,21 +4,21 @@ import (
 	"log/slog"
 )
 
-func (tapProtocol *TapProtocol) WaitRequest() ([]byte, error) {
+func (satscard *Satscard) WaitRequest() ([]byte, error) {
 
 	slog.Debug("Request wait")
 
-	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.queue.enqueue("status")
+	if satscard.currentCardNonce == [16]byte{} {
+		satscard.queue.enqueue("status")
 	}
 
-	tapProtocol.queue.enqueue("wait")
+	satscard.queue.enqueue("wait")
 
-	return tapProtocol.nextCommand()
+	return satscard.nextCommand()
 
 }
 
-func (tapProtocol *TapProtocol) waitRequest() ([]byte, error) {
+func (satscard *Satscard) waitRequest() ([]byte, error) {
 
 	waitCommand := waitCommand{command{Cmd: "wait"}}
 
@@ -26,14 +26,14 @@ func (tapProtocol *TapProtocol) waitRequest() ([]byte, error) {
 
 }
 
-func (tapProtocol *TapProtocol) parseWaitData(waitData waitData) error {
+func (satscard *Satscard) parseWaitData(waitData waitData) error {
 
 	slog.Debug("Parse wait")
 
 	slog.Debug("WAIT", "Success", waitData.Success)
 	slog.Debug("WAIT", "AuthDelay", waitData.AuthDelay)
 
-	tapProtocol.Satscard.AuthDelay = waitData.AuthDelay
+	satscard.AuthDelay = waitData.AuthDelay
 
 	return nil
 

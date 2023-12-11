@@ -9,27 +9,27 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 )
 
-func (tapProtocol *TapProtocol) UnsealRequest(cvc string) ([]byte, error) {
+func (satscard *Satscard) UnsealRequest(cvc string) ([]byte, error) {
 
 	slog.Debug("Request unseal")
 
-	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.queue.enqueue("status")
+	if satscard.currentCardNonce == [16]byte{} {
+		satscard.queue.enqueue("status")
 	}
 
-	tapProtocol.queue.enqueue("unseal")
+	satscard.queue.enqueue("unseal")
 
-	tapProtocol.cvc = cvc
+	satscard.cvc = cvc
 
-	return tapProtocol.nextCommand()
+	return satscard.nextCommand()
 
 }
 
-func (tapProtocol *TapProtocol) unsealRequest() ([]byte, error) {
+func (satscard *Satscard) unsealRequest() ([]byte, error) {
 
 	command := command{Cmd: "unseal"}
 
-	auth, err := tapProtocol.authenticate(tapProtocol.cvc, command)
+	auth, err := satscard.authenticate(satscard.cvc, command)
 
 	if err != nil {
 		return nil, err
@@ -38,14 +38,14 @@ func (tapProtocol *TapProtocol) unsealRequest() ([]byte, error) {
 	unsealCommand := unsealCommand{
 		command: command,
 		auth:    *auth,
-		Slot:    tapProtocol.Satscard.ActiveSlot,
+		Slot:    satscard.ActiveSlot,
 	}
 
 	return apduWrap(unsealCommand)
 
 }
 
-func (tapProtocol *TapProtocol) parseUnsealData(unsealData unsealData) error {
+func (satscard *Satscard) parseUnsealData(unsealData unsealData) error {
 
 	slog.Debug("Parse unseal")
 
@@ -56,11 +56,11 @@ func (tapProtocol *TapProtocol) parseUnsealData(unsealData unsealData) error {
 	slog.Debug("UNSEAL", "ChainCode", fmt.Sprintf("%x", unsealData.ChainCode))
 	slog.Debug("UNSEAL", "CardNonce", fmt.Sprintf("%x", unsealData.CardNonce))
 
-	tapProtocol.currentCardNonce = unsealData.CardNonce
+	satscard.currentCardNonce = unsealData.CardNonce
 
 	// Calculate and return private key as wif
 
-	unencryptedPrivateKeyBytes, err := xor(unsealData.PrivateKey[:], tapProtocol.sessionKey[:])
+	unencryptedPrivateKeyBytes, err := xor(unsealData.PrivateKey[:], satscard.sessionKey[:])
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (tapProtocol *TapProtocol) parseUnsealData(unsealData unsealData) error {
 		return err
 	}
 
-	tapProtocol.Satscard.ActiveSlotPrivateKey = wif.String()
+	satscard.ActiveSlotPrivateKey = wif.String()
 
 	return nil
 

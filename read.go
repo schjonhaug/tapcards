@@ -10,26 +10,26 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 )
 
-func (tapProtocol *TapProtocol) ReadRequest() ([]byte, error) {
+func (satscard *Satscard) ReadRequest() ([]byte, error) {
 
 	slog.Debug("Request read")
 
-	if tapProtocol.currentCardNonce == [16]byte{} {
+	if satscard.currentCardNonce == [16]byte{} {
 
-		tapProtocol.queue.enqueue("status")
+		satscard.queue.enqueue("status")
 	}
 
-	tapProtocol.queue.enqueue("read")
+	satscard.queue.enqueue("read")
 
-	return tapProtocol.nextCommand()
+	return satscard.nextCommand()
 
 }
 
-func (tapProtocol *TapProtocol) readRequest() ([]byte, error) {
+func (satscard *Satscard) readRequest() ([]byte, error) {
 
 	command := command{Cmd: "read"}
 
-	nonce, err := tapProtocol.createNonce()
+	nonce, err := satscard.createNonce()
 
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (tapProtocol *TapProtocol) readRequest() ([]byte, error) {
 
 // READ
 // read a SATSCARD’s current payment address
-func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
+func (satscard *Satscard) parseReadData(readData readData) error {
 
 	slog.Debug("Parse read")
 
@@ -55,9 +55,9 @@ func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
 
 	// Verify public key with signature
 
-	message := append([]byte(openDime), tapProtocol.currentCardNonce[:]...)
-	message = append(message, tapProtocol.appNonce[:]...)
-	message = append(message, []byte{byte(tapProtocol.Satscard.ActiveSlot)}...)
+	message := append([]byte(openDime), satscard.currentCardNonce[:]...)
+	message = append(message, satscard.appNonce[:]...)
+	message = append(message, []byte{byte(satscard.ActiveSlot)}...)
 
 	messageDigest := sha256.Sum256([]byte(message))
 
@@ -81,9 +81,9 @@ func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
 	}
 
 	// Save the current slot public key
-	tapProtocol.currentSlotPublicKey = readData.PublicKey
+	satscard.currentSlotPublicKey = readData.PublicKey
 
-	tapProtocol.currentCardNonce = readData.CardNonce
+	satscard.currentCardNonce = readData.CardNonce
 
 	paymentAddress, err := paymentAddress(readData.PublicKey)
 
@@ -91,7 +91,7 @@ func (tapProtocol *TapProtocol) parseReadData(readData readData) error {
 		return err
 	}
 
-	tapProtocol.Satscard.PaymentAddress = paymentAddress
+	satscard.PaymentAddress = paymentAddress
 
 	return nil
 

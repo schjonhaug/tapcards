@@ -9,12 +9,12 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
-func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth, error) {
+func (satscard *Satscard) authenticate(cvc string, command command) (*auth, error) {
 
 	slog.Debug("AUTH", "CVC", cvc)
 	slog.Debug("AUTH", "Command", command.Cmd)
 
-	cardPublicKey, err := btcec.ParsePubKey(tapProtocol.cardPublicKey[:])
+	cardPublicKey, err := btcec.ParsePubKey(satscard.cardPublicKey[:])
 	if err != nil {
 		return nil, err
 	}
@@ -32,14 +32,14 @@ func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth
 	slog.Debug("AUTH", "EphemeralPublicKey", fmt.Sprintf("%x", ephemeralPublicKey))
 
 	// Using ECDHE, derive a shared symmetric key for encryption of the plaintext.
-	tapProtocol.sessionKey = sha256.Sum256(generateSharedSecret(ephemeralPrivateKey, cardPublicKey))
+	satscard.sessionKey = sha256.Sum256(generateSharedSecret(ephemeralPrivateKey, cardPublicKey))
 
-	slog.Debug("AUTH", "SessionKey", fmt.Sprintf("%x", tapProtocol.sessionKey))
-	slog.Debug("AUTH", "CurrentCardNonce", fmt.Sprintf("%x", tapProtocol.currentCardNonce))
+	slog.Debug("AUTH", "SessionKey", fmt.Sprintf("%x", satscard.sessionKey))
+	slog.Debug("AUTH", "CurrentCardNonce", fmt.Sprintf("%x", satscard.currentCardNonce))
 
-	md := sha256.Sum256(append(tapProtocol.currentCardNonce[:], []byte(command.Cmd)...))
+	md := sha256.Sum256(append(satscard.currentCardNonce[:], []byte(command.Cmd)...))
 
-	f, err := xor(tapProtocol.sessionKey[:], md[:])
+	f, err := xor(satscard.sessionKey[:], md[:])
 	if err != nil {
 		return nil, err
 	}

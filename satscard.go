@@ -14,9 +14,10 @@ const openDime = "OPENDIME"
 
 var factoryRootPublicKeyString = "03028a0e89e70d0ec0d932053a89ab1da7d9182bdc6d2f03e706ee99517d05d9e1"
 
-// TAP PROTOCOL
-
 type Satscard struct {
+
+	// Public
+
 	ActiveSlot           int
 	NumberOfSlots        int
 	Identity             string
@@ -26,9 +27,9 @@ type Satscard struct {
 	Version              string
 	ActiveSlotPrivateKey string
 	AuthDelay            int
-}
 
-type TapProtocol struct {
+	// Private
+
 	appNonce             []byte
 	currentCardNonce     [16]byte
 	cardPublicKey        [33]byte
@@ -38,12 +39,10 @@ type TapProtocol struct {
 
 	cvc string
 
-	Satscard *Satscard
-
 	queue
 }
 
-func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
+func (satscard *Satscard) createNonce() ([]byte, error) {
 
 	// Create nonce
 	nonce := make([]byte, 16)
@@ -55,13 +54,13 @@ func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
 
 	slog.Debug("Created nonce", "Nonce", fmt.Sprintf("%x", nonce))
 
-	tapProtocol.appNonce = nonce
+	satscard.appNonce = nonce
 
 	return nonce, nil
 
 }
 
-func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
+func (satscard *Satscard) ParseResponse(response []byte) ([]byte, error) {
 
 	bytes, err := apduUnwrap(response)
 
@@ -71,7 +70,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
-	command := tapProtocol.queue.dequeue()
+	command := satscard.queue.dequeue()
 
 	if command == nil {
 		return nil, fmt.Errorf("queue empty")
@@ -95,7 +94,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		err = tapProtocol.parseStatusData(v)
+		err = satscard.parseStatusData(v)
 
 	case "read":
 
@@ -113,7 +112,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		err = tapProtocol.parseReadData(v)
+		err = satscard.parseReadData(v)
 	case "unseal":
 
 		var v unsealData
@@ -130,7 +129,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		err = tapProtocol.parseUnsealData(v)
+		err = satscard.parseUnsealData(v)
 	case "certs":
 
 		var v certsData
@@ -147,7 +146,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		err = tapProtocol.parseCertsData(v)
+		err = satscard.parseCertsData(v)
 	case "check":
 
 		var v checkData
@@ -164,7 +163,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		err = tapProtocol.parseCheckData(v)
+		err = satscard.parseCheckData(v)
 	case "new":
 
 		var v newData
@@ -181,7 +180,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		err = tapProtocol.parseNewData(v)
+		err = satscard.parseNewData(v)
 	case "wait":
 
 		var v waitData
@@ -198,7 +197,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		}
 
-		err = tapProtocol.parseWaitData(v)
+		err = satscard.parseWaitData(v)
 
 	default:
 
@@ -213,17 +212,17 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	// Check if there are more commands to run
 
-	return tapProtocol.nextCommand()
+	return satscard.nextCommand()
 
 }
 
-func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
+func (satscard *Satscard) nextCommand() ([]byte, error) {
 
-	command := tapProtocol.queue.peek()
+	command := satscard.queue.peek()
 
 	if command == nil {
 
-		tapProtocol.cvc = ""
+		satscard.cvc = ""
 
 		return nil, nil
 	}
@@ -231,19 +230,19 @@ func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 	switch command {
 
 	case "status":
-		return tapProtocol.statusRequest()
+		return satscard.statusRequest()
 	case "read":
-		return tapProtocol.readRequest()
+		return satscard.readRequest()
 	case "unseal":
-		return tapProtocol.unsealRequest()
+		return satscard.unsealRequest()
 	case "certs":
-		return tapProtocol.certsRequest()
+		return satscard.certsRequest()
 	case "check":
-		return tapProtocol.checkRequest()
+		return satscard.checkRequest()
 	case "new":
-		return tapProtocol.newRequest()
+		return satscard.newRequest()
 	case "wait":
-		return tapProtocol.waitRequest()
+		return satscard.waitRequest()
 
 	default:
 		return nil, errors.New("incorrect command")
@@ -252,13 +251,13 @@ func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 
 }
 
-func (TapProtocol *TapProtocol) EnableDebugLogging() {
+func (satscard *Satscard) EnableDebugLogging() {
 
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(handler))
 }
 
-func (TapProtocol *TapProtocol) UseEmulator() {
+func (satscard *Satscard) UseEmulator() {
 
 	factoryRootPublicKeyString = "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b"
 

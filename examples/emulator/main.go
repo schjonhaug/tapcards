@@ -134,10 +134,10 @@ func main() {
 	transport.Connect()
 	defer transport.Disconnect()
 
-	var tapProtocol tapcards.TapProtocol
+	var satscard tapcards.Satscard
 
-	tapProtocol.UseEmulator()
-	tapProtocol.EnableDebugLogging()
+	satscard.UseEmulator()
+	satscard.EnableDebugLogging()
 
 	argsWithoutProg := os.Args[1:]
 
@@ -147,17 +147,17 @@ func main() {
 	switch argsWithoutProg[0] {
 
 	case "status":
-		request, err = tapProtocol.StatusRequest()
+		request, err = satscard.StatusRequest()
 	case "read":
-		request, err = tapProtocol.ReadRequest()
+		request, err = satscard.ReadRequest()
 	case "unseal":
-		request, err = tapProtocol.UnsealRequest(cvc)
+		request, err = satscard.UnsealRequest(cvc)
 	case "certs":
-		request, err = tapProtocol.CertsRequest()
+		request, err = satscard.CertsRequest()
 	case "new":
-		request, err = tapProtocol.NewRequest(cvc)
+		request, err = satscard.NewRequest(cvc)
 	case "wait":
-		request, err = tapProtocol.WaitRequest()
+		request, err = satscard.WaitRequest()
 
 	default:
 		die(errors.New("unknown command"))
@@ -168,9 +168,8 @@ func main() {
 		die(err)
 	}
 
-	transport.loop(request, tapProtocol.ParseResponse)
+	transport.loop(request, satscard.ParseResponse)
 
-	fmt.Println(tapProtocol)
-	fmt.Println(tapProtocol.Satscard)
+	fmt.Println(satscard)
 
 }

@@ -5,26 +5,26 @@ import (
 	"log/slog"
 )
 
-func (tapProtocol *TapProtocol) NewRequest(cvc string) ([]byte, error) {
+func (satscard *Satscard) NewRequest(cvc string) ([]byte, error) {
 
 	slog.Debug("Request new")
 
-	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.queue.enqueue("status")
+	if satscard.currentCardNonce == [16]byte{} {
+		satscard.queue.enqueue("status")
 	}
 
-	tapProtocol.queue.enqueue("new")
+	satscard.queue.enqueue("new")
 
-	tapProtocol.cvc = cvc
+	satscard.cvc = cvc
 
-	return tapProtocol.nextCommand()
+	return satscard.nextCommand()
 
 }
 
-func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
+func (satscard *Satscard) newRequest() ([]byte, error) {
 
 	// Check if we can open the next slot
-	if tapProtocol.Satscard.ActiveSlot+1 >= tapProtocol.Satscard.NumberOfSlots {
+	if satscard.ActiveSlot+1 >= satscard.NumberOfSlots {
 
 		return nil, errors.New("no more slots available")
 
@@ -32,7 +32,7 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 
 	command := command{Cmd: "new"}
 
-	auth, err := tapProtocol.authenticate(tapProtocol.cvc, command)
+	auth, err := satscard.authenticate(satscard.cvc, command)
 
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 
 	newCommand := newCommand{
 		command: command,
-		Slot:    tapProtocol.Satscard.ActiveSlot,
+		Slot:    satscard.ActiveSlot,
 		auth:    *auth,
 	}
 
@@ -48,13 +48,13 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 
 }
 
-func (tapProtocol *TapProtocol) parseNewData(newData newData) error {
+func (satscard *Satscard) parseNewData(newData newData) error {
 
 	slog.Debug("Parse new")
 	slog.Debug("NEW", "Slot", newData.Slot)
 
-	tapProtocol.currentCardNonce = newData.CardNonce
-	tapProtocol.Satscard.ActiveSlot = newData.Slot
+	satscard.currentCardNonce = newData.CardNonce
+	satscard.ActiveSlot = newData.Slot
 
 	return nil
 

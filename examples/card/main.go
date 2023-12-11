@@ -38,9 +38,9 @@ func waitUntilCardPresent(ctx *scard.Context, readers []string) (int, error) {
 
 func main() {
 
-	var tapProtocol tapcards.TapProtocol
+	var satscard tapcards.Satscard
 
-	tapProtocol.EnableDebugLogging()
+	satscard.EnableDebugLogging()
 
 	// Establish a context
 	ctx, err := scard.EstablishContext()
@@ -87,7 +87,7 @@ func main() {
 
 		// INIT
 
-		cmd, err := tapProtocol.ISOAppletSelectRequest()
+		cmd, err := satscard.ISOAppletSelectRequest()
 
 		if err != nil {
 			die(err)
@@ -101,13 +101,13 @@ func main() {
 		}
 		fmt.Printf("\tr-apdu: % x\n", rsp)
 
-		_, err = tapProtocol.ParseResponse(rsp)
+		_, err = satscard.ParseResponse(rsp)
 
 		if err != nil {
 			die(err)
 		}
 
-		fmt.Println("Satscard", tapProtocol.Satscard)
+		fmt.Println("Satscard", satscard)
 
 		// READ FROM COMMAND LINE
 
@@ -118,17 +118,17 @@ func main() {
 		switch argsWithoutProg[0] {
 
 		case "status":
-			request, err = tapProtocol.StatusRequest()
+			request, err = satscard.StatusRequest()
 		case "read":
-			request, err = tapProtocol.ReadRequest()
+			request, err = satscard.ReadRequest()
 		case "unseal":
-			request, err = tapProtocol.UnsealRequest(argsWithoutProg[1])
+			request, err = satscard.UnsealRequest(argsWithoutProg[1])
 		case "certs":
-			request, err = tapProtocol.CertsRequest()
+			request, err = satscard.CertsRequest()
 		case "new":
-			request, err = tapProtocol.NewRequest(argsWithoutProg[1])
+			request, err = satscard.NewRequest(argsWithoutProg[1])
 		case "wait":
-			request, err = tapProtocol.WaitRequest()
+			request, err = satscard.WaitRequest()
 
 		default:
 			die(errors.New("unknown command"))
@@ -139,9 +139,9 @@ func main() {
 			die(err)
 		}
 
-		loop(card, request, tapProtocol.ParseResponse)
+		loop(card, request, satscard.ParseResponse)
 
-		fmt.Println("Satscard", tapProtocol.Satscard)
+		fmt.Println("Satscard", satscard)
 
 	}
 

@@ -5,10 +5,10 @@ import (
 )
 
 // ISO Applet Select
-func (tapProtocol *TapProtocol) ISOAppletSelectRequest() ([]byte, error) {
+func (satscard *Satscard) ISOAppletSelectRequest() ([]byte, error) {
 
 	// ISO Applet Select is equivalent to doing a "status" command
-	tapProtocol.queue.enqueue("status")
+	satscard.queue.enqueue("status")
 
 	data := []byte{0xf0, 'C', 'o', 'i', 'n', 'k', 'i', 't', 'e', 'C', 'A', 'R', 'D', 'v', '1'}
 

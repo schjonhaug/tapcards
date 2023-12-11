@@ -5,15 +5,15 @@ import (
 	"log/slog"
 )
 
-func (tapProtocol *TapProtocol) StatusRequest() ([]byte, error) {
+func (satscard *Satscard) StatusRequest() ([]byte, error) {
 
-	tapProtocol.queue.enqueue("status")
+	satscard.queue.enqueue("status")
 
-	return tapProtocol.nextCommand()
+	return satscard.nextCommand()
 
 }
 
-func (tapProtocol *TapProtocol) statusRequest() ([]byte, error) {
+func (satscard *Satscard) statusRequest() ([]byte, error) {
 
 	slog.Debug("Request status")
 
@@ -23,7 +23,7 @@ func (tapProtocol *TapProtocol) statusRequest() ([]byte, error) {
 
 }
 
-func (tapProtocol *TapProtocol) parseStatusData(statusData statusData) error {
+func (satscard *Satscard) parseStatusData(statusData statusData) error {
 
 	slog.Debug("Parse status")
 
@@ -31,26 +31,23 @@ func (tapProtocol *TapProtocol) parseStatusData(statusData statusData) error {
 	slog.Debug("STATUS", "CardNonce", fmt.Sprintf("%x", statusData.CardNonce))
 	slog.Debug("STATUS", "AuthDelay", statusData.AuthDelay)
 
-	tapProtocol.cardPublicKey = statusData.PublicKey
-	tapProtocol.currentCardNonce = statusData.CardNonce
+	satscard.cardPublicKey = statusData.PublicKey
+	satscard.currentCardNonce = statusData.CardNonce
 
-	identity, err := identity(tapProtocol.cardPublicKey[:])
+	identity, err := identity(satscard.cardPublicKey[:])
 
 	if err != nil {
 		return err
 	}
 
-	tapProtocol.Satscard = &Satscard{
-
-		ActiveSlot:     statusData.Slots[0],
-		NumberOfSlots:  statusData.Slots[1],
-		Identity:       identity,
-		PaymentAddress: statusData.Address,
-		Proto:          statusData.Proto,
-		Birth:          statusData.Birth,
-		Version:        statusData.Version,
-		AuthDelay:      statusData.AuthDelay,
-	}
+	satscard.ActiveSlot = statusData.Slots[0]
+	satscard.NumberOfSlots = statusData.Slots[1]
+	satscard.Identity = identity
+	satscard.PaymentAddress = statusData.Address
+	satscard.Proto = statusData.Proto
+	satscard.Birth = statusData.Birth
+	satscard.Version = statusData.Version
+	satscard.AuthDelay = statusData.AuthDelay
 
 	return nil
 
