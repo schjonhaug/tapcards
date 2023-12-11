@@ -84,7 +84,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
 
@@ -103,7 +103,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
 				return nil, err
@@ -120,7 +120,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
 				return nil, err
@@ -137,7 +137,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
 				return nil, err
@@ -154,7 +154,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
 				return nil, err
@@ -171,7 +171,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
 				return nil, err
@@ -188,7 +188,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 		if err := decMode.Unmarshal(bytes, &v); err != nil {
 
-			var e ErrorData
+			var e errorData
 
 			if err := decMode.Unmarshal(bytes, &e); err != nil {
 				return nil, err

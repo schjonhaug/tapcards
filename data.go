@@ -53,7 +53,7 @@ type waitData struct {
 	AuthDelay int  `cbor:"auth_delay"`
 }
 
-type ErrorData struct {
+type errorData struct {
 	Code  int
 	Error string
 }
