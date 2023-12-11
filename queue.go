@@ -1,4 +1,3 @@
-// package tapcards provides a simple queue implementation.
 package tapcards
 
 import "log/slog"
