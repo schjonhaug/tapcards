@@ -40,7 +40,7 @@ func (tapProtocol *TapProtocol) parseStatusData(statusData statusData) error {
 		return err
 	}
 
-	tapProtocol.Satscard = Satscard{
+	tapProtocol.Satscard = &Satscard{
 
 		ActiveSlot:     statusData.Slots[0],
 		NumberOfSlots:  statusData.Slots[1],

@@ -38,7 +38,7 @@ type TapProtocol struct {
 
 	cvc string
 
-	Satscard
+	Satscard *Satscard
 
 	queue
 }

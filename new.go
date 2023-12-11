@@ -24,7 +24,7 @@ func (tapProtocol *TapProtocol) NewRequest(cvc string) ([]byte, error) {
 func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 
 	// Check if we can open the next slot
-	if tapProtocol.Satscard.ActiveSlot+1 >= tapProtocol.NumberOfSlots {
+	if tapProtocol.Satscard.ActiveSlot+1 >= tapProtocol.Satscard.NumberOfSlots {
 
 		return nil, errors.New("no more slots available")
 
