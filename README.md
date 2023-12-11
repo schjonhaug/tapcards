@@ -23,6 +23,8 @@ The first action with a card is an `ISOAppletSelectRequest`. The library manages
 
 Subsequently, run a `Request` command to generate a byte array for the card.  Multiple interactions may be necessary for some commands, with byte arrays from `ParseResponse` being resent to the card as needed. Once `ParseResponse` yields no further data, use `Satscard` to access card information, private keys, etc.
 
+Always verify the factory certificate of the card before trusting any data from it. To do this, run `CertsRequest` which check the authenticity of the card.
+
 ## Building Mobile Libraries
 
 The Go library can be compiled for mobile platforms, supporting Objective-C on iOS and Java on Android.
