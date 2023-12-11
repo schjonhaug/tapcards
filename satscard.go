@@ -18,6 +18,7 @@ type Satscard struct {
 
 	// Public
 
+	//TODO: Make private and use getters so these cannot be changed
 	ActiveSlot           int
 	NumberOfSlots        int
 	Identity             string
@@ -76,6 +77,7 @@ func (satscard *Satscard) ParseResponse(response []byte) ([]byte, error) {
 		return nil, fmt.Errorf("queue empty")
 	}
 
+	//TODO: Take a look at generics to see if we can avoid code repetition here
 	switch command {
 	case "status":
 
@@ -251,13 +253,13 @@ func (satscard *Satscard) nextCommand() ([]byte, error) {
 
 }
 
-func (satscard *Satscard) EnableDebugLogging() {
+func EnableDebugLogging() {
 
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(handler))
 }
 
-func (satscard *Satscard) UseEmulator() {
+func UseEmulator() {
 
 	factoryRootPublicKeyString = "022b6750a0c09f632df32afc5bef66568667e04b2e0f57cb8640ac5a040179442b"
 
