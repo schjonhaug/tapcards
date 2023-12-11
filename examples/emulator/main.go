@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/schjonhaug/cktap"
+	"github.com/schjonhaug/tapcards"
 	"github.com/skythen/apdu"
 )
 
@@ -134,10 +134,10 @@ func main() {
 	transport.Connect()
 	defer transport.Disconnect()
 
-	var satscard cktap.Satscard
+	var satscard tapcards.Satscard
 
-	cktap.UseEmulator()
-	cktap.EnableDebugLogging()
+	tapcards.UseEmulator()
+	tapcards.EnableDebugLogging()
 
 	argsWithoutProg := os.Args[1:]
 

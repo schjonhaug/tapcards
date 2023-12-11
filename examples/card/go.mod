@@ -1,10 +1,10 @@
-module github.com/schjonhaug/cktap/examples/card
+module github.com/schjonhaug/tapcards/examples/card
 
 go 1.21.5
 
 require (
 	github.com/ebfe/scard v0.0.0-20230420082256-7db3f9b7c8a7
-	github.com/schjonhaug/cktap v0.0.0-00010101000000-000000000000
+	github.com/schjonhaug/tapcards v0.0.0-00010101000000-000000000000
 
 )
 
@@ -22,4 +22,4 @@ require (
 	golang.org/x/sys v0.15.0 // indirect
 )
 
-replace github.com/schjonhaug/cktap => ../../
+replace github.com/schjonhaug/tapcards => ../../

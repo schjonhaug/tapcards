@@ -1,4 +1,4 @@
-module github.com/schjonhaug/cktap
+module github.com/schjonhaug/tapcards
 
 go 1.21
 

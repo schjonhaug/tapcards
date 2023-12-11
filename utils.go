@@ -1,4 +1,4 @@
-package cktap
+package tapcards
 
 import (
 	"crypto/sha256"
