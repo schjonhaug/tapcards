@@ -1,4 +1,4 @@
-package tapcards
+package cktap
 
 import (
 	"log/slog"

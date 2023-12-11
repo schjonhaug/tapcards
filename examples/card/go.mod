@@ -1,10 +1,10 @@
-module github.com/schjonhaug/coinkite-tap-cards-protocol/examples/card
+module github.com/schjonhaug/cktap/examples/card
 
 go 1.21.5
 
 require (
 	github.com/ebfe/scard v0.0.0-20230420082256-7db3f9b7c8a7
-	github.com/schjonhaug/coinkite-tap-cards-protocol v0.0.0-00010101000000-000000000000
+	github.com/schjonhaug/cktap v0.0.0-00010101000000-000000000000
 
 )
 
@@ -19,7 +19,7 @@ require (
 	github.com/skythen/apdu v0.2.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 )
 
-replace github.com/schjonhaug/coinkite-tap-cards-protocol => ../../
+replace github.com/schjonhaug/cktap => ../../

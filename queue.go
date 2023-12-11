@@ -1,5 +1,5 @@
-// Package tapcards provides a simple queue implementation.
-package tapcards
+// package cktap provides a simple queue implementation.
+package cktap
 
 import "log/slog"
 

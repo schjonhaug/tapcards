@@ -7,7 +7,7 @@ import (
 
 	"github.com/ebfe/scard"
 
-	tapcards "github.com/schjonhaug/coinkite-tap-cards-protocol"
+	"github.com/schjonhaug/cktap"
 )
 
 func die(err error) {
@@ -38,9 +38,9 @@ func waitUntilCardPresent(ctx *scard.Context, readers []string) (int, error) {
 
 func main() {
 
-	var satscard tapcards.Satscard
+	var satscard cktap.Satscard
 
-	satscard.EnableDebugLogging()
+	cktap.EnableDebugLogging()
 
 	// Establish a context
 	ctx, err := scard.EstablishContext()

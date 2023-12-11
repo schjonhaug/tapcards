@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	tapcards "github.com/schjonhaug/coinkite-tap-cards-protocol"
+	"github.com/schjonhaug/cktap"
 	"github.com/skythen/apdu"
 )
 
@@ -134,10 +134,10 @@ func main() {
 	transport.Connect()
 	defer transport.Disconnect()
 
-	var satscard tapcards.Satscard
+	var satscard cktap.Satscard
 
-	satscard.UseEmulator()
-	satscard.EnableDebugLogging()
+	cktap.UseEmulator()
+	cktap.EnableDebugLogging()
 
 	argsWithoutProg := os.Args[1:]
 
