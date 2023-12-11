@@ -81,7 +81,7 @@ func (satscard *Satscard) parseReadData(readData readData) error {
 	}
 
 	// Save the current slot public key
-	satscard.currentSlotPublicKey = readData.PublicKey
+	satscard.activeSlotPublicKey = readData.PublicKey
 
 	satscard.currentCardNonce = readData.CardNonce
 
@@ -91,7 +91,7 @@ func (satscard *Satscard) parseReadData(readData readData) error {
 		return err
 	}
 
-	satscard.PaymentAddress = paymentAddress
+	satscard.ActiveSlotPaymentAddress = paymentAddress
 
 	return nil
 

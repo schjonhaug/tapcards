@@ -39,9 +39,9 @@ func (satscard *Satscard) parseCheckData(checkData checkData) error {
 	message := append([]byte(openDime), satscard.currentCardNonce[:]...)
 	message = append(message, satscard.appNonce[:]...)
 
-	if satscard.currentSlotPublicKey != [33]byte{} {
+	if satscard.activeSlotPublicKey != [33]byte{} {
 		slog.Debug("Adding current slot public key")
-		message = append(message, satscard.currentSlotPublicKey[:]...)
+		message = append(message, satscard.activeSlotPublicKey[:]...)
 	}
 
 	messageDigest := sha256.Sum256([]byte(message))

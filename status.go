@@ -43,7 +43,7 @@ func (satscard *Satscard) parseStatusData(statusData statusData) error {
 	satscard.ActiveSlot = statusData.Slots[0]
 	satscard.NumberOfSlots = statusData.Slots[1]
 	satscard.Identity = identity
-	satscard.PaymentAddress = statusData.Address
+	satscard.ActiveSlotPaymentAddress = statusData.Address
 	satscard.Proto = statusData.Proto
 	satscard.Birth = statusData.Birth
 	satscard.Version = statusData.Version
