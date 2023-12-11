@@ -2,6 +2,8 @@
 
 ![Gopher Logo](gopher.png)
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/schjonhaug/tapcards.svg)](https://pkg.go.dev/github.com/schjonhaug/tapcards)
+
 This project is a Go language implementation of the [Tap Cards protocol](https://dev.coinkite.cards/docs/protocol.html), specifically focusing on the [Satscard](https://satscard.com) functionality. It does not cover [Tapsigner](https://tapsigner.com) or [Satschip](https://satschip.com) functionalities at this time.
 
 ## Available Satscard Commands
