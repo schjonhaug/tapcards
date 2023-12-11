@@ -1,9 +1,9 @@
-module github.com/schjonhaug/coinkite-tap-cards-protocol-go/examples/emulator
+module github.com/schjonhaug/coinkite-tap-cards-protocol/examples/emulator
 
 go 1.21.5
 
 require (
-	github.com/schjonhaug/coinkite-tap-cards-protocol-go v0.0.0-00010101000000-000000000000
+	github.com/schjonhaug/coinkite-tap-cards-protocol v0.0.0-00010101000000-000000000000
 	github.com/skythen/apdu v0.2.0
 )
 
@@ -20,4 +20,4 @@ require (
 	golang.org/x/sys v0.13.0 // indirect
 )
 
-replace github.com/schjonhaug/coinkite-tap-cards-protocol-go => ../../
+replace github.com/schjonhaug/coinkite-tap-cards-protocol => ../../

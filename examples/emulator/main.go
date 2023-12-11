@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	tapcards "github.com/schjonhaug/coinkite-tap-cards-protocol-go"
+	tapcards "github.com/schjonhaug/coinkite-tap-cards-protocol"
 	"github.com/skythen/apdu"
 )
 

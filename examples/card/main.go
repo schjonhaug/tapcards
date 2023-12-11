@@ -7,7 +7,7 @@ import (
 
 	"github.com/ebfe/scard"
 
-	tapprotocol "github.com/schjonhaug/coinkite-tap-cards-protocol-go"
+	tapcards "github.com/schjonhaug/coinkite-tap-cards-protocol"
 )
 
 func die(err error) {
@@ -38,7 +38,7 @@ func waitUntilCardPresent(ctx *scard.Context, readers []string) (int, error) {
 
 func main() {
 
-	var tapProtocol tapprotocol.TapProtocol
+	var tapProtocol tapcards.TapProtocol
 
 	tapProtocol.EnableDebugLogging()
 
