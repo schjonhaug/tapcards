@@ -49,6 +49,10 @@ gomobile bind -target=ios
 gomobile bind -target=android
 ```
 
+## Examples
+
+In the [examples folder](examples), there are two projects using this module. One using the emulator, and the other using physical Satscards.
+
 ## Development and debug
 
 For the ongoing development and upkeep of this library, it is beneficial to utilise the [Python emulator](https://github.com/coinkite/coinkite-tap-proto/tree/master/emulator) provided by Coinkite. You can integrate the emulator with the library by executing `UseEmulator()`. Additionally, invoking `EnableDebugLogging()` will provide valuable information for debugging.

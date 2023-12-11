@@ -7,7 +7,7 @@ import (
 
 	"github.com/ebfe/scard"
 
-	tapprotocol "github.com/schjonhaug/coinkite-tap-proto-go"
+	tapprotocol "github.com/schjonhaug/coinkite-tap-cards-protocol-go"
 )
 
 func die(err error) {
