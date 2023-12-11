@@ -19,11 +19,9 @@ Implemented commands for Satscard include:
 
 ### Initial Steps
 
-The first action with a card is an `ISOAppletSelectRequest`. The library manages APDU complexities, allowing direct sending of raw bytes. This step is not necessary to repeat as long as the card remains powered in the RF field.
+The first action with a card is an `ISOAppletSelectRequest`. The library manages APDU complexities, allowing direct sending of raw bytes. The card’s response should be processed through `ParseResponse`. This step is not necessary to repeat as long as the card remains powered in the RF field.
 
-Subsequently, run a command followed by `Request` to generate a byte array for the card. The card’s response should be processed through `ParseResponse`. Multiple interactions may be necessary for some commands, with byte arrays from `ParseResponse` being resent to the card as needed.
-
-Once `ParseResponse` yields no further data, use `Satscard` to access card information, private keys, etc.
+Subsequently, run a `Request` command to generate a byte array for the card.  Multiple interactions may be necessary for some commands, with byte arrays from `ParseResponse` being resent to the card as needed. Once `ParseResponse` yields no further data, use `Satscard` to access card information, private keys, etc.
 
 ## Building Mobile Libraries
 
@@ -48,3 +46,7 @@ gomobile init
 gomobile bind -target=ios
 gomobile bind -target=android
 ```
+
+## Development and debug
+
+For the ongoing development and upkeep of this library, it is beneficial to utilise the [Python emulator](https://github.com/coinkite/coinkite-tap-proto/tree/master/emulator) provided by CoinKite. You can integrate the emulator with the library by executing `UseEmulator()`. Additionally, invoking `EnableDebugLogging()` will provide valuable information for debugging.
