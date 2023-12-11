@@ -2,7 +2,7 @@ package tapcards
 
 // COMMANDS
 
-type Command struct {
+type command struct {
 	Cmd string `cbor:"cmd"`
 }
 
@@ -12,17 +12,17 @@ type auth struct {
 }
 
 type statusCommand struct {
-	Command
+	command
 }
 
 type unsealCommand struct {
-	Command
+	command
 	auth
 	Slot int `cbor:"slot"`
 }
 
 type newCommand struct {
-	Command
+	command
 	auth
 	Slot int `cbor:"slot"` // (optional: default zero) slot to be affected, must equal currently-active slot number
 	//ChainCode [32]byte `cbor:"chain_code"` // app's entropy share to be applied to new slot (optional on SATSCARD)
@@ -30,19 +30,19 @@ type newCommand struct {
 }
 
 type readCommand struct {
-	Command
+	command
 	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 
 type certsCommand struct {
-	Command
+	command
 }
 
 type checkCommand struct {
-	Command
+	command
 	Nonce []byte `cbor:"nonce"` // provided by app, cannot be all same byte (& should be random)
 }
 
 type waitCommand struct {
-	Command
+	command
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
-func (tapProtocol *TapProtocol) authenticate(cvc string, command Command) (*auth, error) {
+func (tapProtocol *TapProtocol) authenticate(cvc string, command command) (*auth, error) {
 
 	slog.Debug("AUTH", "CVC", cvc)
 	slog.Debug("AUTH", "Command", command.Cmd)

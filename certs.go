@@ -23,7 +23,7 @@ func (tapProtocol *TapProtocol) CertsRequest() ([]byte, error) {
 func (tapProtocol *TapProtocol) certsRequest() ([]byte, error) {
 
 	certsCommand := certsCommand{
-		Command{Cmd: "certs"},
+		command{Cmd: "certs"},
 	}
 
 	return apduWrap(certsCommand)

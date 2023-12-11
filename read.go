@@ -27,7 +27,7 @@ func (tapProtocol *TapProtocol) ReadRequest() ([]byte, error) {
 
 func (tapProtocol *TapProtocol) readRequest() ([]byte, error) {
 
-	command := Command{Cmd: "read"}
+	command := command{Cmd: "read"}
 
 	nonce, err := tapProtocol.createNonce()
 
@@ -36,7 +36,7 @@ func (tapProtocol *TapProtocol) readRequest() ([]byte, error) {
 	}
 
 	readCommand := readCommand{
-		Command: command,
+		command: command,
 		Nonce:   nonce,
 	}
 

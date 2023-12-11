@@ -20,7 +20,7 @@ func (tapProtocol *TapProtocol) WaitRequest() ([]byte, error) {
 
 func (tapProtocol *TapProtocol) waitRequest() ([]byte, error) {
 
-	waitCommand := waitCommand{Command{Cmd: "wait"}}
+	waitCommand := waitCommand{command{Cmd: "wait"}}
 
 	return apduWrap(waitCommand)
 

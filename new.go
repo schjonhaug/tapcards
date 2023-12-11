@@ -30,7 +30,7 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 
 	}
 
-	command := Command{Cmd: "new"}
+	command := command{Cmd: "new"}
 
 	auth, err := tapProtocol.authenticate(tapProtocol.cvc, command)
 
@@ -39,7 +39,7 @@ func (tapProtocol *TapProtocol) newRequest() ([]byte, error) {
 	}
 
 	newCommand := newCommand{
-		Command: command,
+		command: command,
 		Slot:    tapProtocol.Satscard.ActiveSlot,
 		auth:    *auth,
 	}

@@ -21,7 +21,7 @@ func (tapProtocol *TapProtocol) checkRequest() ([]byte, error) {
 	}
 
 	checkCommand := checkCommand{
-		Command: Command{Cmd: "check"},
+		command: command{Cmd: "check"},
 		Nonce:   nonce,
 	}
 
