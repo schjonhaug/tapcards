@@ -9,10 +9,10 @@ func (tapProtocol *TapProtocol) WaitRequest() ([]byte, error) {
 	slog.Debug("Request wait")
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.queue.Enqueue("status")
+		tapProtocol.queue.enqueue("status")
 	}
 
-	tapProtocol.queue.Enqueue("wait")
+	tapProtocol.queue.enqueue("wait")
 
 	return tapProtocol.nextCommand()
 

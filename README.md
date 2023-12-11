@@ -49,4 +49,4 @@ gomobile bind -target=android
 
 ## Development and debug
 
-For the ongoing development and upkeep of this library, it is beneficial to utilise the [Python emulator](https://github.com/coinkite/coinkite-tap-proto/tree/master/emulator) provided by CoinKite. You can integrate the emulator with the library by executing `UseEmulator()`. Additionally, invoking `EnableDebugLogging()` will provide valuable information for debugging.
+For the ongoing development and upkeep of this library, it is beneficial to utilise the [Python emulator](https://github.com/coinkite/coinkite-tap-proto/tree/master/emulator) provided by Coinkite. You can integrate the emulator with the library by executing `UseEmulator()`. Additionally, invoking `EnableDebugLogging()` will provide valuable information for debugging.

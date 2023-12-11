@@ -6,12 +6,12 @@ type queue struct {
 	elements []interface{}
 }
 
-func (q *queue) Enqueue(element interface{}) {
+func (q *queue) enqueue(element interface{}) {
 	slog.Debug("Enqueue", "Command", element)
 	q.elements = append(q.elements, element)
 }
 
-func (q *queue) Dequeue() interface{} {
+func (q *queue) dequeue() interface{} {
 	if len(q.elements) == 0 {
 		return nil
 	}
@@ -23,7 +23,7 @@ func (q *queue) Dequeue() interface{} {
 	return element
 }
 
-func (q *queue) Peek() interface{} {
+func (q *queue) peek() interface{} {
 	if len(q.elements) == 0 {
 		return nil
 	}
@@ -31,10 +31,10 @@ func (q *queue) Peek() interface{} {
 	slog.Debug("Peek", "Command", element)
 	return element
 }
-func (q *queue) Size() int {
+func (q *queue) size() int {
 	return len(q.elements)
 }
 
-func (q *queue) IsEmpty() bool {
+func (q *queue) isEmpty() bool {
 	return len(q.elements) == 0
 }

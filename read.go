@@ -16,10 +16,10 @@ func (tapProtocol *TapProtocol) ReadRequest() ([]byte, error) {
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
 
-		tapProtocol.queue.Enqueue("status")
+		tapProtocol.queue.enqueue("status")
 	}
 
-	tapProtocol.queue.Enqueue("read")
+	tapProtocol.queue.enqueue("read")
 
 	return tapProtocol.nextCommand()
 

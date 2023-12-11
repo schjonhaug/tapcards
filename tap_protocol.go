@@ -71,7 +71,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 	decMode, _ := cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
 
-	command := tapProtocol.queue.Dequeue()
+	command := tapProtocol.queue.dequeue()
 
 	if command == nil {
 		return nil, fmt.Errorf("queue empty")
@@ -219,7 +219,7 @@ func (tapProtocol *TapProtocol) ParseResponse(response []byte) ([]byte, error) {
 
 func (tapProtocol *TapProtocol) nextCommand() ([]byte, error) {
 
-	command := tapProtocol.queue.Peek()
+	command := tapProtocol.queue.peek()
 
 	if command == nil {
 

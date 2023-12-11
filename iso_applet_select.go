@@ -8,7 +8,7 @@ import (
 func (tapProtocol *TapProtocol) ISOAppletSelectRequest() ([]byte, error) {
 
 	// ISO Applet Select is equivalent to doing a "status" command
-	tapProtocol.queue.Enqueue("status")
+	tapProtocol.queue.enqueue("status")
 
 	data := []byte{0xf0, 'C', 'o', 'i', 'n', 'k', 'i', 't', 'e', 'C', 'A', 'R', 'D', 'v', '1'}
 

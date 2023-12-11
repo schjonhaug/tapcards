@@ -10,10 +10,10 @@ func (tapProtocol *TapProtocol) NewRequest(cvc string) ([]byte, error) {
 	slog.Debug("Request new")
 
 	if tapProtocol.currentCardNonce == [16]byte{} {
-		tapProtocol.queue.Enqueue("status")
+		tapProtocol.queue.enqueue("status")
 	}
 
-	tapProtocol.queue.Enqueue("new")
+	tapProtocol.queue.enqueue("new")
 
 	tapProtocol.cvc = cvc
 
