@@ -19,9 +19,9 @@ Implemented commands for Satscard include:
 
 ### Initial Steps
 
-The first action with a card is an `ISOAppletSelect`. This step is not repeated as long as the card remains powered in the RF field.
+The first action with a card is an `ISOAppletSelectRequest`. The library manages APDU complexities, allowing direct sending of raw bytes. This step is not necessary to repeat as long as the card remains powered in the RF field.
 
-Subsequently, run a command followed by `Request` to generate a byte array for the card. The library manages APDU complexities, allowing direct sending of raw bytes. The card’s byte array response should be processed through `ParseResponse`. Multiple interactions may be necessary for some commands, with byte arrays from `ParseResponse` being resent to the card as needed.
+Subsequently, run a command followed by `Request` to generate a byte array for the card. The card’s response should be processed through `ParseResponse`. Multiple interactions may be necessary for some commands, with byte arrays from `ParseResponse` being resent to the card as needed.
 
 Once `ParseResponse` yields no further data, use `Satscard` to access card information, private keys, etc.
 
