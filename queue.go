@@ -2,16 +2,16 @@ package tapcards
 
 import "log/slog"
 
-type Queue struct {
+type queue struct {
 	elements []interface{}
 }
 
-func (q *Queue) Enqueue(element interface{}) {
+func (q *queue) Enqueue(element interface{}) {
 	slog.Debug("Enqueue", "Command", element)
 	q.elements = append(q.elements, element)
 }
 
-func (q *Queue) Dequeue() interface{} {
+func (q *queue) Dequeue() interface{} {
 	if len(q.elements) == 0 {
 		return nil
 	}
@@ -23,7 +23,7 @@ func (q *Queue) Dequeue() interface{} {
 	return element
 }
 
-func (q *Queue) Peek() interface{} {
+func (q *queue) Peek() interface{} {
 	if len(q.elements) == 0 {
 		return nil
 	}
@@ -31,10 +31,10 @@ func (q *Queue) Peek() interface{} {
 	slog.Debug("Peek", "Command", element)
 	return element
 }
-func (q *Queue) Size() int {
+func (q *queue) Size() int {
 	return len(q.elements)
 }
 
-func (q *Queue) IsEmpty() bool {
+func (q *queue) IsEmpty() bool {
 	return len(q.elements) == 0
 }

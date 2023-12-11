@@ -40,7 +40,7 @@ type TapProtocol struct {
 
 	Satscard
 
-	queue Queue
+	queue
 }
 
 func (tapProtocol *TapProtocol) createNonce() ([]byte, error) {
