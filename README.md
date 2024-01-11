@@ -48,7 +48,7 @@ go install golang.org/x/mobile/cmd/gomobile@latest
 go install golang.org/x/mobile/bind
 gomobile init
 gomobile bind -target=ios
-gomobile bind -target=android
+gomobile bind -o tapcards.aar -androidapi <API VERSION> -target=android github.com/schjonhaug/tapcards
 ```
 
 ## Examples
