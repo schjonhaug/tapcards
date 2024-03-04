@@ -38,6 +38,12 @@ func waitUntilCardPresent(ctx *scard.Context, readers []string) (int, error) {
 
 func main() {
 
+	argsWithoutProg := os.Args[1:]
+
+	if len(argsWithoutProg) == 0 {
+		die(errors.New("command required"))
+	}
+
 	var satscard tapcards.Satscard
 
 	tapcards.EnableDebugLogging()
@@ -111,8 +117,6 @@ func main() {
 
 		// READ FROM COMMAND LINE
 
-		argsWithoutProg := os.Args[1:]
-
 		var request []byte
 
 		switch argsWithoutProg[0] {
@@ -122,10 +126,19 @@ func main() {
 		case "read":
 			request, err = satscard.ReadRequest()
 		case "unseal":
+
+			if len(argsWithoutProg) < 2 {
+				die(errors.New("auth required"))
+			}
+
 			request, err = satscard.UnsealRequest(argsWithoutProg[1])
 		case "certs":
 			request, err = satscard.CertsRequest()
 		case "new":
+
+			if len(argsWithoutProg) < 2 {
+				die(errors.New("auth required"))
+			}
 			request, err = satscard.NewRequest(argsWithoutProg[1])
 		case "wait":
 			request, err = satscard.WaitRequest()

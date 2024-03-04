@@ -127,6 +127,12 @@ func (transport *Transport) loop(request []byte, fn2 func(response []byte) ([]by
 
 func main() {
 
+	argsWithoutProg := os.Args[1:]
+
+	if len(argsWithoutProg) == 0 {
+		die(errors.New("command required"))
+	}
+
 	var transport Transport
 
 	cvc := "123456"
@@ -138,8 +144,6 @@ func main() {
 
 	tapcards.UseEmulator()
 	tapcards.EnableDebugLogging()
-
-	argsWithoutProg := os.Args[1:]
 
 	var request []byte
 	var err error
