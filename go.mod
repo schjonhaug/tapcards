@@ -1,6 +1,6 @@
 module github.com/schjonhaug/tapcards
 
-go 1.21
+go 1.19
 
 require (
 	github.com/btcsuite/btcd v0.23.4
@@ -10,10 +10,9 @@ require (
 	github.com/fxamacker/cbor/v2 v2.4.0
 )
 
-require github.com/pkg/errors v0.9.1 // indirect
-
 require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/skythen/apdu v0.2.0
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
